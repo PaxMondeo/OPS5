@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <Authors>Rob Lewis</Authors>
+    <Copyright>Copyright Rob Lewis 2017-2026</Copyright>
+    <RepositoryType>git</RepositoryType>
+    <VersionPrefix>1.0.0</VersionPrefix>
+  </PropertyGroup>
+</Project>

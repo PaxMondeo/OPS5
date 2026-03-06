@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/OPS5.Engine/">
+    <Project Path="OPS5.Engine/OPS5.Engine.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="Shared/AttributeLibrary.csproj" />
+  </Folder>
+  <Project Path="OPS5.FunctionalTests/OPS5.FunctionalTests.csproj" />
+  <Project Path="OPS5.Host/OPS5.Host.csproj" />
+  <Project Path="OPS5.Tests/OPS5.Tests.csproj" />
+</Solution>

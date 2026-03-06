@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>OPS5.AttributeLibrary</PackageId>
+    <Description>Shared attribute utilities for OPS5 Rules Engine</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="XpressNet\**" />
+    <EmbeddedResource Remove="XpressNet\**" />
+    <None Remove="XpressNet\**" />
+  </ItemGroup>
+
+</Project>
