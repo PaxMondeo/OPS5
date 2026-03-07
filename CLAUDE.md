@@ -66,7 +66,7 @@ Engine (RETE network execution)
 
 - **Unit tests**: `OPS5.Tests/` - test parser, engine components (163 tests)
 - **Functional tests**: `OPS5.FunctionalTests/` - load and run full `.ops5` programs (63 tests)
-- Functional test programs are `.ops5` files from the "ioCog Projects" DevOps project
+- Functional test programs are `.ops5` files in the `examples/` directory
 - Test harness: `OPS5.FunctionalTests/Infrastructure/OPS5TestEngine.cs`
 
 ## Build & Test

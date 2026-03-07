@@ -244,44 +244,28 @@ public class OPS5TestEngine : IDisposable
     }
 
     /// <summary>
-    /// Resolves the path to the test projects directory.
-    /// Checks IOCOG_PROJECTS_PATH environment variable first,
-    /// then walks up from the solution directory to find the sibling folder.
+    /// Resolves the path to the examples directory within the solution root.
+    /// Walks up from the test assembly location to find the solution root
+    /// (identified by the presence of OPS5.slnx), then returns the examples/ subdirectory.
     /// </summary>
     public static string ResolveProjectsPath()
     {
-        // Check environment variable first
-        string? envPath = Environment.GetEnvironmentVariable("IOCOG_PROJECTS_PATH");
-        if (!string.IsNullOrEmpty(envPath) && Directory.Exists(envPath))
-            return envPath;
-
-        // Walk up from the test assembly location to find the solution root,
-        // then look for sibling ioCogProjects directory
+        // Walk up from the test assembly location to find the solution root
         string? dir = AppContext.BaseDirectory;
         while (dir != null)
         {
-            string candidate = Path.Combine(dir, "ioCogProjects");
-            if (Directory.Exists(candidate))
-                return candidate;
-
-            // Also check sibling directory from parent
-            string? parent = Directory.GetParent(dir)?.FullName;
-            if (parent != null)
+            string slnx = Path.Combine(dir, "OPS5.slnx");
+            if (File.Exists(slnx))
             {
-                candidate = Path.Combine(parent, "ioCogProjects");
-                if (Directory.Exists(candidate))
-                    return candidate;
+                string examples = Path.Combine(dir, "examples");
+                if (Directory.Exists(examples))
+                    return examples;
             }
 
-            dir = parent;
+            dir = Directory.GetParent(dir)?.FullName;
         }
 
-        // Fallback to the known development path
-        string fallback = @"C:\Development\Code\ioCogProjects";
-        if (Directory.Exists(fallback))
-            return fallback;
-
         throw new DirectoryNotFoundException(
-            "Cannot find ioCogProjects directory. Set the IOCOG_PROJECTS_PATH environment variable.");
+            "Cannot find examples directory. Ensure the solution root contains an examples/ folder.");
     }
 }
