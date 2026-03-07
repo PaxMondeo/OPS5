@@ -1,0 +1,64 @@
+; ComparisonTest - All comparison operators in OPS5
+; Demonstrates: =, <>, <, >, <=, >= predicates in LHS conditions
+
+; === Class definitions ===
+(literalize item name value)
+(literalize result test-name item-name)
+(literalize control test)
+
+; === Initial data ===
+(make item ^name A ^value 10)
+(make item ^name B ^value 20)
+(make item ^name C ^value 10)
+
+; Control objects to trigger each test separately
+(make control ^test eq)
+(make control ^test ne)
+(make control ^test lt)
+(make control ^test gt)
+(make control ^test le)
+(make control ^test ge)
+
+; === Production rules ===
+
+; Equality: matches items with value = 10 (A, C)
+(p eq-test
+    (control ^test eq)
+    (item ^name <name> ^value 10)
+    -->
+    (make result ^test-name eq ^item-name <name>))
+
+; Not equals: matches items with value <> 10 (B)
+(p ne-test
+    (control ^test ne)
+    (item ^name <name> ^value <> 10)
+    -->
+    (make result ^test-name ne ^item-name <name>))
+
+; Less than: matches items with value < 15 (A, C)
+(p lt-test
+    (control ^test lt)
+    (item ^name <name> ^value < 15)
+    -->
+    (make result ^test-name lt ^item-name <name>))
+
+; Greater than: matches items with value > 15 (B)
+(p gt-test
+    (control ^test gt)
+    (item ^name <name> ^value > 15)
+    -->
+    (make result ^test-name gt ^item-name <name>))
+
+; Less or equal: matches items with value <= 10 (A, C)
+(p le-test
+    (control ^test le)
+    (item ^name <name> ^value <= 10)
+    -->
+    (make result ^test-name le ^item-name <name>))
+
+; Greater or equal: matches items with value >= 20 (B)
+(p ge-test
+    (control ^test ge)
+    (item ^name <name> ^value >= 20)
+    -->
+    (make result ^test-name ge ^item-name <name>))

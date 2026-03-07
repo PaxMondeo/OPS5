@@ -1,0 +1,45 @@
+; StateMachine - State transitions in OPS5
+; Demonstrates: negated conditions, modify, sequential rule firing
+
+; === Class definitions ===
+(literalize context status)
+(literalize result step value)
+
+; === Initial data ===
+(make context ^status start)
+
+; === Production rules ===
+
+; Transition from Start to StepOne
+(p step-one
+    (context ^status start)
+    - (result ^step one)
+    -->
+    (make result ^step one ^value |First step completed|)
+    (modify 1 ^status step-one)
+    (write |Transitioned to StepOne|))
+
+; Transition from StepOne to StepTwo
+(p step-two
+    (context ^status step-one)
+    - (result ^step two)
+    -->
+    (make result ^step two ^value |Second step completed|)
+    (modify 1 ^status step-two)
+    (write |Transitioned to StepTwo|))
+
+; Transition from StepTwo to StepThree
+(p step-three
+    (context ^status step-two)
+    - (result ^step three)
+    -->
+    (make result ^step three ^value |Third step completed|)
+    (modify 1 ^status step-three)
+    (write |Transitioned to StepThree|))
+
+; Final transition to Done
+(p complete
+    (context ^status step-three)
+    -->
+    (modify 1 ^status done)
+    (write |State machine completed|))

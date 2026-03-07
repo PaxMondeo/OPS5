@@ -1,0 +1,43 @@
+; TowerOfHanoi - Classic recursive puzzle in OPS5
+; Demonstrates: arithmetic, conjunction, negated conditions, modify, remove, bind
+
+; === Class definitions ===
+(literalize disk size peg)
+(literalize goal num-disks disk from to via)
+(literalize peg peg-number)
+
+; === Initial data ===
+(make peg ^peg-number 1)
+(make peg ^peg-number 2)
+(make peg ^peg-number 3)
+
+(make disk ^size 1 ^peg 1)
+(make disk ^size 2 ^peg 1)
+(make disk ^size 3 ^peg 1)
+
+(make goal ^num-disks 3 ^disk 3 ^from 1 ^to 3 ^via 2)
+
+; === Production rules ===
+
+; Decompose a multi-disk goal into three sub-goals
+(p strategy
+    (goal ^num-disks { <n> > 1 } ^disk <disk> ^from <from> ^to <to> ^via <via>)
+    -->
+    (bind <n1> (- <n> 1))
+    (bind <d1> (- <disk> 1))
+    (make goal ^num-disks <n1> ^disk <d1> ^from <via> ^to <to> ^via <from>)
+    (make goal ^num-disks 1 ^disk <disk> ^from <from> ^to <to> ^via <via>)
+    (make goal ^num-disks <n1> ^disk <d1> ^from <from> ^to <via> ^via <to>)
+    (write |Strategy: decomposing disk | <disk> | from | <from> | to | <to>)
+    (remove 1))
+
+; Move a single disk if no smaller disk blocks the move
+(p move-disk
+    (goal ^num-disks 1 ^disk <disk> ^from <from> ^to <to>)
+    (disk ^size <disk> ^peg <from>)
+    - (disk ^peg <from> ^size < <disk>)
+    - (disk ^peg <to> ^size < <disk>)
+    -->
+    (write |Moving disk | <disk> | from | <from> | to | <to>)
+    (modify 2 ^peg <to>)
+    (remove 1))

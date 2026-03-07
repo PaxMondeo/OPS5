@@ -1,0 +1,29 @@
+; BlocksWorld - Classic AI blocks world example
+; Demonstrates: variable binding, modify, halt
+
+; === Class definitions ===
+(literalize block name color on-top-of)
+(literalize goal status object)
+
+; === Initial data ===
+(make block ^name B1 ^color red ^on-top-of B2)
+(make block ^name B2 ^color blue ^on-top-of table)
+(make block ^name B3 ^color green ^on-top-of table)
+(make goal ^status find-red ^object none)
+
+; === Production rules ===
+
+; Find a red block and report it
+(p find-red-block
+    (goal ^status find-red)
+    (block ^name <b> ^color red)
+    -->
+    (write |Found red block: | <b>)
+    (modify 1 ^status found ^object <b>))
+
+; After finding, halt
+(p done-finding
+    (goal ^status found ^object <b>)
+    -->
+    (write |Done. Red block is: | <b>)
+    (halt))

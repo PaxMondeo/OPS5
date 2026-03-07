@@ -1,0 +1,16 @@
+; HelloWorld - A minimal OPS5 program
+; Demonstrates: literalize, make, write, variable binding
+
+; === Class definitions ===
+(literalize planet name size)
+
+; === Initial data ===
+(make planet ^name Earth ^size Large)
+(make planet ^name Mars ^size Small)
+
+; === Production rules ===
+
+(p hello
+    (planet ^name <name>)
+    -->
+    (write |Hello | <name>))

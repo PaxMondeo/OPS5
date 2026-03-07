@@ -1,0 +1,77 @@
+; Manners - Dinner party seating arrangement
+; Demonstrates: multi-fact joins, max-finding via negation, complex variable binding
+;
+; Seats 8 guests at a dinner table, ensuring adjacent guests share
+; at least one common interest. Uses the classic OPS5 pattern of
+; negation to find the highest-numbered seat (max-finding).
+
+; === Class definitions ===
+(literalize guest name gender chosen)
+(literalize interest guest topic)
+(literalize seating seat-number guest-name)
+
+; === Initial data ===
+(make guest ^name Alice ^gender Female ^chosen NIL)
+(make guest ^name Bob ^gender Male ^chosen NIL)
+(make guest ^name Carol ^gender Female ^chosen NIL)
+(make guest ^name Dave ^gender Male ^chosen NIL)
+(make guest ^name Eve ^gender Female ^chosen NIL)
+(make guest ^name Frank ^gender Male ^chosen NIL)
+(make guest ^name Grace ^gender Female ^chosen NIL)
+(make guest ^name Henry ^gender Male ^chosen NIL)
+
+(make interest ^guest Alice ^topic Music)
+(make interest ^guest Alice ^topic Art)
+(make interest ^guest Alice ^topic Travel)
+
+(make interest ^guest Bob ^topic Music)
+(make interest ^guest Bob ^topic Sport)
+(make interest ^guest Bob ^topic Cooking)
+
+(make interest ^guest Carol ^topic Sport)
+(make interest ^guest Carol ^topic Art)
+(make interest ^guest Carol ^topic Reading)
+
+(make interest ^guest Dave ^topic Art)
+(make interest ^guest Dave ^topic Reading)
+(make interest ^guest Dave ^topic Travel)
+
+(make interest ^guest Eve ^topic Music)
+(make interest ^guest Eve ^topic Travel)
+(make interest ^guest Eve ^topic Sport)
+
+(make interest ^guest Frank ^topic Art)
+(make interest ^guest Frank ^topic Music)
+(make interest ^guest Frank ^topic Reading)
+
+(make interest ^guest Grace ^topic Reading)
+(make interest ^guest Grace ^topic Music)
+(make interest ^guest Grace ^topic Cooking)
+
+(make interest ^guest Henry ^topic Sport)
+(make interest ^guest Henry ^topic Travel)
+(make interest ^guest Henry ^topic Cooking)
+
+; === Production rules ===
+
+; Assign the first guest to seat 1
+(p assign-first-seat
+    (guest ^chosen NIL ^name <name> ^gender <gender>)
+    - (seating)
+    -->
+    (make seating ^seat-number 1 ^guest-name <name>)
+    (modify 1 ^chosen Yes)
+    (write |Assigned Seat 1 to | <name> | | <gender>))
+
+; Seat the next guest using max-finding pattern
+(p assign-next-seat
+    (seating ^seat-number <last-seat> ^guest-name <last-guest>)
+    - (seating ^seat-number > <last-seat>)
+    (guest ^chosen NIL ^name <new-guest> ^gender <new-gender>)
+    (interest ^guest <last-guest> ^topic <shared>)
+    (interest ^guest <new-guest> ^topic <shared>)
+    -->
+    (bind <seat> (+ <last-seat> 1))
+    (make seating ^seat-number <seat> ^guest-name <new-guest>)
+    (modify 3 ^chosen Yes)
+    (write |Assigned Seat | <seat> | to | <new-guest> | | <new-gender> | shared | <shared>))

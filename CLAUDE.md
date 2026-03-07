@@ -77,6 +77,19 @@ dotnet test OPS5.Tests
 dotnet test OPS5.FunctionalTests
 ```
 
+## Book: OPS5 Revisited — Second Edition
+
+Markdown source files are in `C:\Development\Book\SecondEdition\` (16 files, 00 through 14 + appendix-a).
+
+To generate the book:
+
+```bash
+cd C:\Development\Book\SecondEdition
+pandoc -o book.epub 00-front-matter.md 01-ops5.md 02-rete-network.md 03-architecture.md 04-working-memory.md 05-alpha-network.md 06-beta-network.md 07-conflict-resolution.md 08-parsing.md 09-parsing-lhs.md 10-parsing-rhs.md 11-runtime-actions.md 12-console.md 13-building-running.md 14-conclusion.md appendix-a.md
+```
+
+Replace `.epub` with `.docx` for Word format.
+
 ## OPS5 Language Features Supported
 
 - `(literalize ...)` - Class/WME type declarations

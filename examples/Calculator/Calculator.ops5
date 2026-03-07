@@ -1,0 +1,46 @@
+; Calculator - Arithmetic operations in OPS5
+; Demonstrates: bind, compute expressions (+, -, *, /), remove
+
+; === Class definitions ===
+(literalize input a b operation)
+(literalize result operation value)
+
+; === Initial data ===
+(make input ^a 10 ^b 5 ^operation add)
+(make input ^a 20 ^b 8 ^operation subtract)
+(make input ^a 6 ^b 7 ^operation multiply)
+(make input ^a 20 ^b 4 ^operation divide)
+
+; === Production rules ===
+
+(p add-rule
+    (input ^a <a> ^b <b> ^operation add)
+    -->
+    (bind <r> (+ <a> <b>))
+    (make result ^operation add ^value <r>)
+    (write |Add: | <a> | + | <b> | = | <r>)
+    (remove 1))
+
+(p subtract-rule
+    (input ^a <a> ^b <b> ^operation subtract)
+    -->
+    (bind <r> (- <a> <b>))
+    (make result ^operation subtract ^value <r>)
+    (write |Subtract: | <a> | - | <b> | = | <r>)
+    (remove 1))
+
+(p multiply-rule
+    (input ^a <a> ^b <b> ^operation multiply)
+    -->
+    (bind <r> (* <a> <b>))
+    (make result ^operation multiply ^value <r>)
+    (write |Multiply: | <a> | * | <b> | = | <r>)
+    (remove 1))
+
+(p divide-rule
+    (input ^a <a> ^b <b> ^operation divide)
+    -->
+    (bind <r> (/ <a> <b>))
+    (make result ^operation divide ^value <r>)
+    (write |Divide: | <a> | / | <b> | = | <r>)
+    (remove 1))

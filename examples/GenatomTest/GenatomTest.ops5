@@ -1,0 +1,29 @@
+; GenatomTest - Unique symbol generation
+; Demonstrates: genatom generates unique atoms for use as identifiers
+
+; === Class definitions ===
+(literalize control step)
+(literalize result atom-id step)
+
+; === Initial data ===
+(make control ^step first)
+
+; === Production rules ===
+
+; Generate first unique ID
+(p gen-first
+    (control ^step first)
+    -->
+    (bind <id> (genatom))
+    (make result ^atom-id <id> ^step first)
+    (modify 1 ^step second)
+    (write |Generated first ID: | <id>))
+
+; Generate second unique ID
+(p gen-second
+    (control ^step second)
+    -->
+    (bind <id> (genatom))
+    (make result ^atom-id <id> ^step second)
+    (modify 1 ^step done)
+    (write |Generated second ID: | <id>))

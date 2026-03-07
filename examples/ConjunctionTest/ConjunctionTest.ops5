@@ -1,0 +1,20 @@
+; ConjunctionTest - AND predicates on a single attribute
+; Demonstrates: { } conjunction with multiple predicates
+
+; === Class definitions ===
+(literalize item name value)
+(literalize result name)
+
+; === Initial data ===
+(make item ^name A ^value 5)
+(make item ^name B ^value 15)
+(make item ^name C ^value 25)
+
+; === Production rules ===
+
+; Match items where value is both > 10 AND < 20 (only B=15 matches)
+(p range-match
+    (item ^name <name> ^value { > 10 < 20 })
+    -->
+    (make result ^name <name>)
+    (write |Range match: | <name>))

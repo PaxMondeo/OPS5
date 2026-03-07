@@ -1,0 +1,21 @@
+; DisjunctionTest - OR matching in OPS5
+; Demonstrates: << >> disjunction syntax in LHS conditions
+
+; === Class definitions ===
+(literalize signal name color)
+(literalize result name)
+
+; === Initial data ===
+(make signal ^name Stop ^color Red)
+(make signal ^name Caution ^color Amber)
+(make signal ^name Go ^color Green)
+(make signal ^name Off ^color Black)
+
+; === Production rules ===
+
+; Match signals with color Red OR Amber
+(p match-warning-signals
+    (signal ^color << Red Amber >> ^name <name>)
+    -->
+    (make result ^name <name>)
+    (write |Warning signal: | <name>))

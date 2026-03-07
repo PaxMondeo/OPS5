@@ -1,0 +1,33 @@
+; FileIOTest - File I/O operations
+; Demonstrates: openfile, closefile, write to file, accept (read) from file
+; Note: Requires a file called "test-input.txt" in the working directory.
+
+; === Class definitions ===
+(literalize control step)
+(literalize result value)
+
+; === Initial data ===
+(make control ^step write-file)
+
+; === Production rules ===
+
+; Step 1: Write to an output file
+(p write-to-file
+    (control ^step write-file)
+    -->
+    (openfile outfile |test-output.txt| out)
+    (write outfile |Hello from OPS5|)
+    (closefile outfile)
+    (modify 1 ^step read-file)
+    (write |Wrote to output file|))
+
+; Step 2: Read from an input file
+(p read-from-file
+    (control ^step read-file)
+    -->
+    (openfile infile |test-input.txt| in)
+    (bind <val> (accept infile))
+    (closefile infile)
+    (make result ^value <val>)
+    (modify 1 ^step done)
+    (write |Read from input file: | <val>))

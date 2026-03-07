@@ -1,0 +1,35 @@
+; SubstrTest - Substring operations
+; Demonstrates: substr with literal positions, variable positions, INF
+
+; === Class definitions ===
+(literalize substr-input text start length)
+(literalize substr-result test-name value)
+
+; === Initial data ===
+(make substr-input ^text |HelloWorld| ^start 6 ^length 5)
+
+; === Production rules ===
+
+; Test 1: Extract using literal positions -> "World"
+(p set-substr-literal
+    (substr-input ^text <text>)
+    - (substr-result ^test-name SetLiteral)
+    -->
+    (bind <result> (substr <text> 6 5))
+    (make substr-result ^test-name SetLiteral ^value <result>))
+
+; Test 2: Extract from position to end using INF -> "World"
+(p set-substr-inf
+    (substr-input ^text <text>)
+    - (substr-result ^test-name SetInf)
+    -->
+    (bind <result> (substr <text> 6 inf))
+    (make substr-result ^test-name SetInf ^value <result>))
+
+; Test 3: Extract using variable positions -> "World"
+(p set-substr-variable
+    (substr-input ^text <text> ^start <start> ^length <len>)
+    - (substr-result ^test-name SetVariable)
+    -->
+    (bind <result> (substr <text> <start> <len>))
+    (make substr-result ^test-name SetVariable ^value <result>))

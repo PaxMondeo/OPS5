@@ -1,0 +1,25 @@
+; StrategyTest - Conflict resolution strategies
+; Demonstrates: LEX and MEA conflict resolution
+; Note: The strategy (LEX or MEA) is set programmatically before running.
+
+; === Class definitions ===
+(literalize control step)
+(literalize item name value)
+(literalize result picked)
+
+; === Initial data ===
+; Items created in order: First(1), then Second(2)
+; Under LEX, Second wins (higher time-tag)
+(make control ^step go)
+(make item ^name First ^value 1)
+(make item ^name Second ^value 2)
+
+; === Production rules ===
+
+; Pick an item - conflict resolution strategy determines which one
+(p pick-item
+    (control ^step go)
+    (item ^name <name> ^value <val>)
+    -->
+    (make result ^picked <name>)
+    (remove 1))
