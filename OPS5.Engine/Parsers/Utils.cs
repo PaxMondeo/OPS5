@@ -302,22 +302,12 @@ namespace OPS5.Engine.Parsers
             string uFileName = fileName.ToUpper();
             if (fileComment != "")
             {
-                if (uFileName.EndsWith(".IOC"))
-                    _sourceFiles.ProjectFile.Comment += fileComment;
-                else if (uFileName.EndsWith(".IOCC"))
-                    if (_sourceFiles.ClassFiles.ContainsKey(uFileName))
-                        _sourceFiles.ClassFiles[uFileName].Comment += fileComment;
-                    else
-                        _logger.WriteError($"Unable to save comment to file {fileName} - not found", "Parser");
-                else if (uFileName.EndsWith(".IOCR"))
-                    if (_sourceFiles.RuleFiles.ContainsKey(uFileName))
-                        _sourceFiles.RuleFiles[uFileName].Comment += fileComment;
-                    else
-                        _logger.WriteError($"Unable to save comment to file {fileName} - not found", "Parser");
-                else if (uFileName.EndsWith(".IOCB"))
-                    _sourceFiles.BindingFile.Comment += fileComment;
-                else if (uFileName.EndsWith(".IOCD"))
-                    _sourceFiles.DataFile.Comment += fileComment;
+                if (uFileName.EndsWith(".OPS5"))
+                    _sourceFiles.OPS5File.Comment += fileComment;
+                else if (_sourceFiles.ClassFiles.ContainsKey(uFileName))
+                    _sourceFiles.ClassFiles[uFileName].Comment += fileComment;
+                else if (_sourceFiles.RuleFiles.ContainsKey(uFileName))
+                    _sourceFiles.RuleFiles[uFileName].Comment += fileComment;
             }
         }
 

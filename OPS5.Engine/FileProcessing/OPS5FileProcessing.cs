@@ -15,10 +15,7 @@ namespace OPS5.Engine.FileProcessing
     {
         private readonly IOPS5Logger _logger;
         private readonly IConfig _config;
-        private readonly IIOCCParser _ioccParser;
-        private readonly IIOCDParser _iocdParser;
-        private readonly IIOCRParser _iocrParser;
-        private readonly IOPS5Transpiler _ops5Transpiler;
+        private readonly IOPS5Parser _ops5Parser;
         private readonly IUtils _parserUtils;
         private readonly IRHSActionFactory _rhsActionFactory;
 
@@ -39,10 +36,7 @@ namespace OPS5.Engine.FileProcessing
                               IAlphaMemory alphaMemory,
                               IBetaMemory betaMemory,
                               IRules rules,
-                              IIOCCParser ioccParser,
-                              IIOCDParser iocdParser,
-                              IIOCRParser iocrParser,
-                              IOPS5Transpiler ops5Transpiler,
+                              IOPS5Parser ops5Parser,
                               IUtils parserUtils,
                               ISourceFiles sourceFiles,
                               IObjectIDs objectIDs,
@@ -56,10 +50,7 @@ namespace OPS5.Engine.FileProcessing
             _alphaMemory = alphaMemory;
             _betaMemory = betaMemory;
             _rules = rules;
-            _ioccParser = ioccParser;
-            _iocdParser = iocdParser;
-            _iocrParser = iocrParser;
-            _ops5Transpiler = ops5Transpiler;
+            _ops5Parser = ops5Parser;
             _parserUtils = parserUtils;
             _sourceFiles = sourceFiles;
             _objectIDs = objectIDs;
@@ -113,30 +104,25 @@ namespace OPS5.Engine.FileProcessing
         private void ProcessOPS5File(string file, string fileName)
         {
             _config.Ops5 = true;
-            var result = _ops5Transpiler.Transpile(file, fileName);
+            var result = _ops5Parser.Parse(file, fileName);
 
-            foreach (string diag in result.Diagnostics)
-                _logger.WriteError(diag, fileName);
+            if (result.Classes.Classes.Count > 0)
+                ProcessClassModels(result.Classes, fileName);
 
-            if (!string.IsNullOrWhiteSpace(result.ClassesText))
-                ProcessClassFile(result.ClassesText, fileName + ".classes");
+            if (result.Rules.Rules.Count > 0)
+                ProcessRuleModels(result.Rules, fileName);
 
-            if (!string.IsNullOrWhiteSpace(result.RulesText))
-                ProcessRuleFile(result.RulesText, fileName + ".rules");
-
-            if (!string.IsNullOrWhiteSpace(result.DataText))
-                ProcessDataFile(result.DataText, fileName + ".data");
+            if (result.Data.Actions.Count > 0)
+                ProcessDataModels(result.Data, fileName);
 
             _logger.WriteInfo($"Completed OPS5 file {fileName}", 0);
         }
 
-        private void ProcessClassFile(string file, string fileName)
+        private void ProcessClassModels(ClassFileModel classFileModel, string fileName)
         {
-            IOCCFileModel ioccFileModel = _ioccParser.ParseIOCCFile(file, fileName);
+            SetUpRelatedClasses(classFileModel.Classes);
 
-            SetUpRelatedClasses(ioccFileModel.Classes);
-
-            foreach (ClassModel classModel in ioccFileModel.Classes)
+            foreach (ClassModel classModel in classFileModel.Classes)
             {
                 if (!classModel.IsBase)
                 {
@@ -162,16 +148,14 @@ namespace OPS5.Engine.FileProcessing
                 theClass.Comment = classModel.Comment;
                 theClass.IsBaseClass = classModel.IsBase;
             }
-            _logger.WriteInfo($"Completed file {fileName}", 0);
+            _logger.WriteInfo($"Completed classes in {fileName}", 0);
         }
 
-        private void ProcessRuleFile(string file, string fileName)
+        private void ProcessRuleModels(RuleFileModel ruleFileModel, string fileName)
         {
             try
             {
-                IOCRFileModel iocrFileModel = _iocrParser.ParseIOCRFile(file, fileName);
-
-                foreach (RuleModel ruleModel in iocrFileModel.Rules)
+                foreach (RuleModel ruleModel in ruleFileModel.Rules)
                 {
                     IRule prod = _rules.AddRule(ruleModel);
                     prod.Comment = ruleModel.Comment;
@@ -226,6 +210,10 @@ namespace OPS5.Engine.FileProcessing
                                 case "HALT":
                                 case "WAIT":
                                 case "SET":
+                                case "OPENFILE":
+                                case "CLOSEFILE":
+                                case "ACCEPT":
+                                case "ACCEPTLINE":
                                     rhsAction = _rhsActionFactory.NewRHSAction(action.Line, action.Atoms); //Atoms are strings
                                     break;
                             }
@@ -266,10 +254,9 @@ namespace OPS5.Engine.FileProcessing
             _logger.WriteInfo($"Completed file {fileName}", 0);
         }
 
-        private void ProcessDataFile(string file, string fileName)
+        private void ProcessDataModels(DataFileModel dataFileModel, string fileName)
         {
-            IOCDFileModel iocdFileModel = _iocdParser.ParseIOCDFile(file, fileName);
-            foreach (DataActionModel action in iocdFileModel.Actions)
+            foreach (DataActionModel action in dataFileModel.Actions)
             {
                 if (action.Command.Contains("MAKE"))
                     Make(action.Atoms, fileName);
@@ -281,9 +268,9 @@ namespace OPS5.Engine.FileProcessing
         private void SetUpRelatedClasses(List<ClassModel> classModels)
         {
             //Sort out related classes.
-            //In the .iocc file, relationships are defined using a virtual attribute that indicates that another class is a child of this class
-            //e.g. Sections: [ Section ]  indicates that the Section class is a child of this class and zero or more Sections belong to an object of this class
-            //However, in OPS5 objects, the child class must have an attribute that points to the ID of its parent, e.g. PARENTID
+            //Relationships are defined using a virtual attribute that indicates that another class is a child of this class
+            //e.g. Sections: [ Section ]  indicates that the Section class is a child of this class
+            //The child class must have an attribute that points to the ID of its parent, e.g. PARENTID
             //Therefore we must check for such attribute definitions and replace them with attributes in the children
 
             foreach (ClassModel classModel in classModels)

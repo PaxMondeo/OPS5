@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace OPS5.Engine.Models
 {
-    public class IOCRFileModel
+    public class RuleFileModel
     {
         public List<RuleModel> Rules { get; set; } = new List<RuleModel>();
     }

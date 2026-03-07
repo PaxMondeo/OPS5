@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace OPS5.Engine.Models
 {
-    public class IOCCFileModel
+    public class ClassFileModel
     {
         public List<ClassModel> Classes { get; set; } = new List<ClassModel>();
     }

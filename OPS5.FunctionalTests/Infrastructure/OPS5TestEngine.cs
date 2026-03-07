@@ -2,6 +2,7 @@ using System.IO;
 using System.Text;
 using OPS5.Engine.Contracts;
 using OPS5.Engine.DI;
+using OPS5.Engine.Enumerations;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 
@@ -23,6 +24,7 @@ public class OPS5TestEngine : IDisposable
     public IOPS5Logger Logger { get; }
     public IWMClasses Classes { get; }
     public IRules Rules { get; }
+    public IOPS5Settings Settings { get; }
 
     private readonly IConfig _config;
 
@@ -40,6 +42,7 @@ public class OPS5TestEngine : IDisposable
         Logger = _serviceProvider.GetRequiredService<IOPS5Logger>();
         Classes = _serviceProvider.GetRequiredService<IWMClasses>();
         Rules = _serviceProvider.GetRequiredService<IRules>();
+        Settings = _serviceProvider.GetRequiredService<IOPS5Settings>();
         _config = _serviceProvider.GetRequiredService<IConfig>();
 
         // Initialise config with test settings
@@ -51,7 +54,7 @@ public class OPS5TestEngine : IDisposable
     /// Loads an OPS5 project file and runs the engine.
     /// </summary>
     /// <param name="projectDirectory">Absolute path to the directory containing the project file</param>
-    /// <param name="projectFile">Name of the project file (e.g., "HelloWorld.ioc")</param>
+    /// <param name="projectFile">Name of the project file (e.g., "HelloWorld.ops5")</param>
     /// <param name="maxSteps">Maximum rule firing cycles (0 = unlimited until quiescence)</param>
     /// <returns>True if the project loaded and ran without errors</returns>
     public async Task<bool> LoadAndRun(string projectDirectory, string projectFile, int maxSteps = 0)
@@ -86,6 +89,18 @@ public class OPS5TestEngine : IDisposable
         }
 
         WriteStatisticsTable();
+
+        // Dump any errors that were captured during Engine.Run()
+        if (_output != null && Logger.ErrorCount > 0)
+        {
+            var capturedOutput = _consoleCapture?.ToString() ?? "";
+            foreach (var line in capturedOutput.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (line.Contains("ERROR"))
+                    _output.WriteLine($"[ENGINE] {line}");
+            }
+        }
+
         return Logger.ErrorCount == 0;
     }
 
@@ -169,6 +184,20 @@ public class OPS5TestEngine : IDisposable
     public int ErrorCount => Logger.ErrorCount;
 
     /// <summary>
+    /// Sets the conflict resolution strategy before running the engine.
+    /// Call this between Load() and RunOnly().
+    /// </summary>
+    public void SetStrategy(ConflictResolutionStrategy strategy)
+        => Settings.Strategy = strategy;
+
+    /// <summary>
+    /// Redirects Console.In so that (accept) actions read from the provided string.
+    /// Call this between Load() and RunOnly().
+    /// </summary>
+    public void SetConsoleInput(string input)
+        => Console.SetIn(new StringReader(input));
+
+    /// <summary>
     /// Writes a per-rule firing statistics table to the test output.
     /// </summary>
     private void WriteStatisticsTable()
@@ -215,7 +244,7 @@ public class OPS5TestEngine : IDisposable
     }
 
     /// <summary>
-    /// Resolves the path to ioCogProjects directory.
+    /// Resolves the path to the test projects directory.
     /// Checks IOCOG_PROJECTS_PATH environment variable first,
     /// then walks up from the solution directory to find the sibling folder.
     /// </summary>

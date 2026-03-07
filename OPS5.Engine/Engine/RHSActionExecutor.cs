@@ -22,6 +22,7 @@ namespace OPS5.Engine
         private readonly IBetaMemory _betaMemory;
         private readonly IFileHandleManager _fileHandleManager;
         private readonly IExecuteBindingRegistry _executeBindingRegistry;
+        private readonly IObjectIDs _objectIDs;
 
         private char[] _trimChars { get; } = new char[] { ' ', '\t', '\n' };
         private string _writeOut = "";
@@ -38,7 +39,8 @@ namespace OPS5.Engine
             IConfig config,
             IBetaMemory betaMemory,
             IExecuteBindingRegistry executeBindingRegistry,
-            IFileHandleManager fileHandleManager)
+            IFileHandleManager fileHandleManager,
+            IObjectIDs objectIDs)
         {
             _logger = logger;
             _parserUtils = parserUtils;
@@ -49,6 +51,7 @@ namespace OPS5.Engine
             _betaMemory = betaMemory;
             _executeBindingRegistry = executeBindingRegistry;
             _fileHandleManager = fileHandleManager;
+            _objectIDs = objectIDs;
         }
 
         public void ResetHalt()
@@ -196,6 +199,10 @@ namespace OPS5.Engine
                                 result = _calculators.Default().DoCalc(commands, thisToken);
                             else
                                 _logger.WriteError("No actions found in set command", "Engine");
+                            break;
+
+                        case "GENATOM":
+                            result = _objectIDs.NextObjectID().ToString();
                             break;
 
                         case "SUBSTR":
@@ -361,6 +368,10 @@ namespace OPS5.Engine
             string logicalName = actions[1] is string ln ? thisToken.TryGetVariableValue(ln) : actions[1].ToString()!;
             string filePath = actions[2] is string fp ? thisToken.TryGetVariableValue(fp) : actions[2].ToString()!;
             string mode = actions[3] is string m ? m.ToUpperInvariant() : actions[3].ToString()!.ToUpperInvariant();
+
+            // Resolve relative paths against the project directory
+            if (!System.IO.Path.IsPathRooted(filePath) && !string.IsNullOrEmpty(_config.ClientAppPath))
+                filePath = System.IO.Path.Combine(_config.ClientAppPath, filePath);
 
             _fileHandleManager.OpenFile(logicalName, filePath, mode);
         }

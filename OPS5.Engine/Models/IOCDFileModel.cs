@@ -5,7 +5,7 @@ using System.Text;
 
 namespace OPS5.Engine.Models
 {
-    public class IOCDFileModel
+    public class DataFileModel
     {
         public List<DataActionModel> Actions { get; set; } = new List<DataActionModel>();
     }
