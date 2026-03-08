@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Collections.Concurrent;
 
 namespace OPS5.Engine.Contracts
 {
@@ -14,7 +13,7 @@ namespace OPS5.Engine.Contracts
         IBetaNode BetaParent { get; set; }
         List<ConditionTest> Tests { get;  }
         Dictionary<string, Binding> Bindings { get; }
-        ConcurrentDictionary<int, IToken> Tokens { get; }
+        Dictionary<int, IToken> Tokens { get; }
         List<IBetaNode> BetaChildren { get; }
         bool Negative { get; }
         bool IsFindPath { get; }
@@ -24,10 +23,10 @@ namespace OPS5.Engine.Contracts
         void AttachChildNode(IBetaNode node);
         int TokenCount();
         void AddBindings(Dictionary<string, Binding> newBindings);
-        void LeftActivation(IToken token, bool isThreaded);
-        void NegativeLeftActivation(IToken token, bool isThreaded);
-        void RightActivation(int objectID, bool isThreaded);
-        void NegativeRightActivation(int objectID, bool isThreaded);
+        void LeftActivation(IToken token);
+        void NegativeLeftActivation(IToken token);
+        void RightActivation(int objectID);
+        void NegativeRightActivation(int objectID);
         void RemoveObject(int objectID);
         void RemoveToken(List<int> objectIDs);
         bool HasTokens();

@@ -1,6 +1,5 @@
 using AttributeLibrary;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace OPS5.Engine.Contracts
@@ -10,7 +9,7 @@ namespace OPS5.Engine.Contracts
         IAlphaNode AlphaRoot { get; set; }
         IBetaNode BetaRoot { get; set; }
         int TimeTag { get; }
-        ConcurrentQueue<IWMElement> IncomingData { get; set; }
+        Queue<IWMElement> IncomingData { get; set; }
         event EventHandler<IWMElement> ObjectAdded;
         event EventHandler<IWMElement> ObjectChanged;
         event EventHandler<IWMElement> ObjectRemoved;

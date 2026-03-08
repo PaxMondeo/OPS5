@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Collections.Concurrent;
 
 namespace OPS5.Engine.Contracts
 {
@@ -13,7 +12,7 @@ namespace OPS5.Engine.Contracts
         List<int> ObjectIDs { get; set; }
         List<int> Recency { get; set; }
         int Owner { get; set; }
-        ConcurrentDictionary<string, string> Variables { get; set; }
+        Dictionary<string, string> Variables { get; set; }
         bool Fired { get; set; }
         void AddObject(int objectID);
         void Copy(IToken toToken);

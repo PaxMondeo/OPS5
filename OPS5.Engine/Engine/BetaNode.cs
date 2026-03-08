@@ -1,11 +1,11 @@
 ﻿using OPS5.Engine.Contracts;
 using OPS5.Engine.Contracts.Parser;
 using System;
-using System.Collections.Concurrent;
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+
 
 namespace OPS5.Engine
 {
@@ -88,8 +88,8 @@ namespace OPS5.Engine
         /// <summary>
         /// List of Tokens contained in this node
         /// </summary>
-        public ConcurrentDictionary<int, IToken> Tokens { get;  }
-        private readonly ConcurrentDictionary<string, byte> _tokenSignatures = new ConcurrentDictionary<string, byte>();
+        public Dictionary<int, IToken> Tokens { get;  }
+        private readonly Dictionary<string, byte> _tokenSignatures = new Dictionary<string, byte>();
         /// <summary>
         /// List of Beta nodes that receive Tokens from this node
         /// </summary>
@@ -146,7 +146,7 @@ namespace OPS5.Engine
             //Only used for Beta Root.
             _betaChildren = new List<IBetaNode>();
             Tests = new List<ConditionTest>();
-            Tokens = new ConcurrentDictionary<int, IToken>();
+            Tokens = new Dictionary<int, IToken>();
             Bindings = new Dictionary<string, Binding>(StringComparer.OrdinalIgnoreCase);
             Negative = false;
             IsFindPath = false;
@@ -178,11 +178,11 @@ namespace OPS5.Engine
             {
                 if (Negative)
                 {
-                    NegativeLeftActivation(token, false);
+                    NegativeLeftActivation(token);
                 }
                 else
                 {
-                    LeftActivation(token, false);
+                    LeftActivation(token);
                 }
             }
         }
@@ -219,8 +219,8 @@ namespace OPS5.Engine
         ///If token is empty, parent is root, so just add Object
         /// </summary>
         /// <param name="token"></param>
-        /// <param name="isThreaded"></param>
-        public void LeftActivation(IToken token, bool isThreaded)
+
+        public void LeftActivation(IToken token)
         {
 
             //Make a copy of the token so we don't update variables in passed token, and to avoid concurrency issues
@@ -247,50 +247,6 @@ namespace OPS5.Engine
                 }
                 else //Not FindPath
                 {
-                    if (AlphaParent.ObjectCount() > _config.ThreadThreshold && !isThreaded)
-                    {
-                        try
-                        {
-                            Parallel.ForEach(objectIDs, new ParallelOptions { MaxDegreeOfParallelism = _config.ops5Config.MaxParallel }, (objectID, loopState) =>
-                            {
-                                //Make a copy of the token so we don't update variables in passed token
-                                IToken tmpToken = _tokenFactory.NewToken(ID);
-                                newToken.Copy(tmpToken);
-                                IWMElement iObject = _workingMemory.GetWME(objectID);
-                                bool addObject = false;
-                                if (tmpToken.ObjectIDs.Count == 0)
-                                {
-                                    BindFirstObjectVariables(tmpToken, iObject);
-                                    addObject = true;
-                                }
-                                else if (PerformTests(tmpToken, iObject))
-                                {
-                                    addObject = true;
-                                }
-                                if (addObject)
-                                {
-                                    tmpToken.AddObject(objectID);
-                                    tmpToken.UpdateObjects();
-                                    if (!_tokenSignatures.ContainsKey(tmpToken.GetObjectKey()))
-                                    {
-                                        AddToken(tmpToken, true);
-                                        if (IsAny)
-                                            loopState.Break();
-                                    }
-                                }
-                            });
-                        }
-                        catch (AggregateException ae)
-                        {
-                            ae.Handle((x) =>
-                            {
-                                _logger.WriteError(x.Message, "LeftActivation");
-                                return true;
-                            });
-                        }
-                    }
-                    else
-                    {
                         foreach (int objectID in objectIDs)
                             {
                             //Make a copy of the token so we don't update variables in passed token
@@ -313,13 +269,12 @@ namespace OPS5.Engine
                                     tmpToken.UpdateObjects();
                                     if (!_tokenSignatures.ContainsKey(tmpToken.GetObjectKey()))
                                     {
-                                        AddToken(tmpToken, isThreaded);
+                                        AddToken(tmpToken);
                                         if (IsAny)
                                             break;
                                     }
                                 }
                             }
-                        }
                 }
             }
                 catch (Exception ex)
@@ -336,8 +291,8 @@ namespace OPS5.Engine
         ///If the Token is empty, then the parent is the root node, so just add the Object
         /// </summary>
         /// <param name="objectID"></param>
-        /// <param name="isThreaded"></param>
-        public void RightActivation(int objectID, bool isThreaded)
+
+        public void RightActivation(int objectID)
         {
             _logger.WriteInfo($"Right Activating Beta node {ID} with Object {objectID}", 2);
             //Copy Beta parent's tokens to an array to avoid locking on iteration
@@ -347,62 +302,6 @@ namespace OPS5.Engine
 
             try
             {
-                if (betaTokens.Count > _config.ThreadThreshold && !isThreaded)
-                {
-                    _logger.WriteInfo("Gone Parallel", 2);
-                    Parallel.ForEach(betaTokens, new ParallelOptions { MaxDegreeOfParallelism = _config.ops5Config.MaxParallel }, (token) =>
-                    {
-                        bool doToken = true;
-                        if (IsAny)
-                        {
-                            //We only want to pair this Object up with token from the parent Beta if that token has not already been paired with a previous Object
-                            foreach (IToken existing in tokens)
-                            {
-                                bool thisOne = true;
-                                for (int x = 0; x < token.ObjectIDs.Count; x++)
-                                {
-                                    if (token.ObjectIDs[x] != existing.ObjectIDs[x])
-                                        thisOne = false;
-                                }
-                                if (thisOne)
-                                {
-                                    doToken = false;
-                                    break;
-                                }
-                            }
-                        }
-                        if (doToken)
-                        {
-                            IToken newToken = _tokenFactory.NewToken(ID);
-                            token.Copy(newToken);
-
-                            bool addObject = false;
-                            if (newToken.ObjectIDs.Count == 0)
-                            {
-                                BindFirstObjectVariables(newToken, _workingMemory.GetWME(objectID));
-                                addObject = true;
-                            }
-                            else if (PerformTests(newToken, _workingMemory.GetWME(objectID)))
-                            {
-                                addObject = true;
-                            }
-                            if (addObject)
-                            {
-                                lock (newToken.ObjectIDs)
-                                {
-                                    newToken.AddObject(objectID);
-                                }
-                                newToken.UpdateObjects();
-                                if (!_tokenSignatures.ContainsKey(newToken.GetObjectKey()))
-                                    AddToken(newToken, true);
-
-                            }
-                        }
-                    });
-                    _logger.WriteInfo("Gone Single", 2);
-                }
-                else
-                {
                     foreach (IToken token in betaTokens)
                     {
                         bool doToken = true;
@@ -445,13 +344,12 @@ namespace OPS5.Engine
                                 newToken.UpdateObjects();
                                 if (!_tokenSignatures.ContainsKey(newToken.GetObjectKey()))
                                 {
-                                    AddToken(newToken, isThreaded);
+                                    AddToken(newToken);
                                 }
 
                             }
                         }
                     }
-                }
             }
             catch (Exception ex)
             {
@@ -465,7 +363,7 @@ namespace OPS5.Engine
 
 
 
-        public void NegativeLeftActivation(IToken token, bool isThreaded)
+        public void NegativeLeftActivation(IToken token)
         {
             bool addToken = true;
             try
@@ -497,7 +395,7 @@ namespace OPS5.Engine
                 {
                     newToken.UpdateObjects();
                     if (!_tokenSignatures.ContainsKey(newToken.GetObjectKey()))
-                        AddToken(newToken, isThreaded);
+                        AddToken(newToken);
                 }
             }
             catch (Exception ex)
@@ -506,7 +404,7 @@ namespace OPS5.Engine
             }
         }
 
-        public void NegativeRightActivation(int objectID, bool isThreaded)
+        public void NegativeRightActivation(int objectID)
         {
             _logger.WriteInfo($"Negative Right Activating Beta node {ID} after change", 2);
 
@@ -535,9 +433,9 @@ namespace OPS5.Engine
                     //Get Object pattern to identify tokens down the chasin
                     List<int> objectIDs = token.ObjectIDs.ToList();
                     int tokenID = token.ID;
-                    if (Tokens.TryRemove(tokenID, out _))
+                    if (Tokens.Remove(tokenID))
                     {
-                        _tokenSignatures.TryRemove(token.GetObjectKey(), out _);
+                        _tokenSignatures.Remove(token.GetObjectKey());
                         foreach (IBetaNode bNode in BetaChildren)
                             bNode.RemoveToken(objectIDs);
                     }
@@ -547,7 +445,7 @@ namespace OPS5.Engine
             }
         }
 
-        internal void NegativeRemoveObject(int objectID, bool isThreaded)
+        internal void NegativeRemoveObject(int objectID)
         {
             _logger.WriteInfo($"Removing Object {objectID} from Negative Beta node {ID} after change", 2);
 
@@ -571,24 +469,25 @@ namespace OPS5.Engine
                     }
                     if (addToken)
                     {
-                        AddToken(newToken, isThreaded);
+                        AddToken(newToken);
                     }
                 }
             }
 
         }
 
-        private void AddToken(IToken newToken, bool isThreaded)
+        private void AddToken(IToken newToken)
         {
             bool added = false;
             if(Tokens.ContainsKey(newToken.ID))
                 _logger.WriteError($"Attempt to add dulicate Token {newToken.ID} to Beta Node {ID}", "AddToken");
             else
             {
-                added = Tokens.TryAdd(newToken.ID, newToken);
+                Tokens.Add(newToken.ID, newToken);
+                added = true;
                 if (added)
                 {
-                    _tokenSignatures.TryAdd(newToken.GetObjectKey(), 0);
+                    _tokenSignatures[newToken.GetObjectKey()] = 0;
                     newToken.Owner = ID;
                     _logger.WriteInfo($"Added token to Beta Node {ID}", 2);
                     List<IBetaNode> children = BetaChildren.ToList();
@@ -596,11 +495,11 @@ namespace OPS5.Engine
                     {
                         if (child.Negative)
                         {
-                            child.NegativeLeftActivation(newToken, isThreaded);
+                            child.NegativeLeftActivation(newToken);
                         }
                         else
                         {
-                            child.LeftActivation(newToken, isThreaded);
+                            child.LeftActivation(newToken);
                         }
                     }
                 }
@@ -635,11 +534,9 @@ namespace OPS5.Engine
 
                 foreach(int tokenID in tokens)
                 {
-                    lock (Tokens)
-                    {
-                        if(Tokens.TryRemove(tokenID, out IToken? removedToken))
+                        if(Tokens.TryGetValue(tokenID, out IToken? removedToken) && Tokens.Remove(tokenID))
                         {
-                            _tokenSignatures.TryRemove(removedToken.GetObjectKey(), out _);
+                            _tokenSignatures.Remove(removedToken.GetObjectKey());
                             List<IBetaNode> children = BetaChildren.ToList();
                             foreach (IBetaNode child in children)
                             {
@@ -648,7 +545,6 @@ namespace OPS5.Engine
                         }
                         else
                             _logger.WriteError($"Failed to delete Token {tokenID} from Beta Node {ID}", "RemoveToken");
-                    }
                 }
 
             }

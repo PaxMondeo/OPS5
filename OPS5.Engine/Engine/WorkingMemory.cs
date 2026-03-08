@@ -1,11 +1,9 @@
 using OPS5.Engine.Contracts;
 using AttributeLibrary;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 namespace OPS5.Engine
 {
@@ -18,7 +16,7 @@ namespace OPS5.Engine
         /// <summary>
         /// Dictionary of Working Memory Elements currently in existence
         /// </summary>
-        private ConcurrentDictionary<int, IWMElement> _wmes { get; set; } = new ConcurrentDictionary<int, IWMElement>();
+        private Dictionary<int, IWMElement> _wmes { get; set; } = new Dictionary<int, IWMElement>();
 
         /// <summary>
         /// The root Alpha node through which all Objects are added
@@ -35,9 +33,9 @@ namespace OPS5.Engine
         private int _timeTag;
         public int TimeTag => _timeTag;
         /// <summary>
-        /// Used by REST, XMPP and Sockets interfaces to queue Objects to be inserted into working memory at the appropriate time
+        /// Queue of Objects to be inserted into working memory at the appropriate time
         /// </summary>
-        public ConcurrentQueue<IWMElement> IncomingData { get; set; } = new ConcurrentQueue<IWMElement>();
+        public Queue<IWMElement> IncomingData { get; set; } = new Queue<IWMElement>();
 
         public event EventHandler<IWMElement> ObjectAdded = default!;
         public event EventHandler<IWMElement> ObjectChanged = default!;
@@ -54,10 +52,10 @@ namespace OPS5.Engine
 
         public void Reset(IAlphaNode alphaRoot, IBetaNode betaRoot)
         {
-            _wmes = new ConcurrentDictionary<int, IWMElement>();
+            _wmes = new Dictionary<int, IWMElement>();
             AlphaRoot = alphaRoot;
             BetaRoot = betaRoot;
-            IncomingData = new ConcurrentQueue<IWMElement>();
+            IncomingData = new Queue<IWMElement>();
             _timeTag = 1;
         }
 
@@ -66,7 +64,7 @@ namespace OPS5.Engine
 
         public Dictionary<int, IWMElement> GetWMEs()
         {
-            return _wmes.ToDictionary(_ => _.Key, _ => _.Value);
+            return new Dictionary<int, IWMElement>(_wmes);
         }
 
         public List<IWMElement> ListWMEsByClass(string className)
@@ -270,11 +268,11 @@ namespace OPS5.Engine
             {
 
                 iocObject = _objectFactory.NewObject(className);
-                _wmes.AddOrUpdate(iocObject.ID, iocObject, (key, existingVal) => { return existingVal; });
-                iocObject.TimeTag = Interlocked.Increment(ref _timeTag);
+                _wmes[iocObject.ID] = iocObject;
+                iocObject.TimeTag = ++_timeTag;
                 iocObject.ProcessAttributes(attributes);
 
-                AlphaRoot.AddObject(iocObject.ID, false);
+                AlphaRoot.AddObject(iocObject.ID);
                 if (_logger.Verbosity > 1)
                 {
                     string message = $"Created Object #{iocObject.ID} for {iocObject.ClassName}";
@@ -313,9 +311,9 @@ namespace OPS5.Engine
         /// <param name="iObject"></param>
         public void AddObject(IWMElement iObject)
         {
-            iObject.TimeTag = Interlocked.Increment(ref _timeTag);
-            _wmes.AddOrUpdate(iObject.ID, iObject, (key, existingVal) => { return existingVal; });
-            AlphaRoot.AddObject(iObject.ID, false);
+            iObject.TimeTag = ++_timeTag;
+            _wmes[iObject.ID] = iObject;
+            AlphaRoot.AddObject(iObject.ID);
             ObjectAdded?.Invoke(this, iObject);
         }
 
@@ -330,8 +328,8 @@ namespace OPS5.Engine
             if (_WMClasses.ClassExists(className))
             {
                 iocObject = _objectFactory.NewObject(className);
-                _wmes.AddOrUpdate(iocObject.ID, iocObject, (key, existingVal) => { return existingVal; });
-                iocObject.TimeTag = Interlocked.Increment(ref _timeTag);
+                _wmes[iocObject.ID] = iocObject;
+                iocObject.TimeTag = ++_timeTag;
                 iocObject.ProcessElements(elements);
                 IncomingData.Enqueue(iocObject);
 
@@ -355,7 +353,7 @@ namespace OPS5.Engine
         {
             var id = iObject.ID;
             var newObject = CopyObject(iObject);
-            AlphaRoot.AddObject(newObject.ID, false);
+            AlphaRoot.AddObject(newObject.ID);
             RemoveObject(id, true, true);
         }
 
@@ -365,7 +363,7 @@ namespace OPS5.Engine
                 _logger.WriteError($"Attempt to replace object {objectID} with itself.", "Working Memory");
             else
             {
-                AlphaRoot.AddObject(newObject.ID, false);
+                AlphaRoot.AddObject(newObject.ID);
                 if (!RemoveObject(objectID, false))
                     _logger.WriteError($"Attempt to replace non existent object {objectID}.", "Working Memory");
             }
@@ -380,9 +378,9 @@ namespace OPS5.Engine
         {
             IWMElement newObject = default!;
             newObject = _objectFactory.NewObject();
-            newObject.TimeTag = Interlocked.Increment(ref _timeTag);
+            newObject.TimeTag = ++_timeTag;
             newObject.Copy(iObject);
-            _wmes.AddOrUpdate(newObject.ID, newObject, (key, existingVal) => { return existingVal; });
+            _wmes[newObject.ID] = newObject;
 
             ObjectAdded?.Invoke(this, newObject);
 
@@ -401,7 +399,7 @@ namespace OPS5.Engine
                 try
                 {
                     AlphaRoot.RemoveObject(objectID);
-                    bool result = _wmes.TryRemove(objectID, out _);
+                    bool result = _wmes.Remove(objectID);
 
                     if(signalEvent)  // If this is removing an object prior to replacing it, don't bother signalling its removal
                         ObjectRemoved?.Invoke(this, iObject);
@@ -445,12 +443,12 @@ namespace OPS5.Engine
             {
 
                 iocObject = _objectFactory.NewObject();
-                _wmes.AddOrUpdate(iocObject.ID, iocObject, (key, existingVal) => { return existingVal; });
-                iocObject.TimeTag = Interlocked.Increment(ref _timeTag);
+                _wmes[iocObject.ID] = iocObject;
+                iocObject.TimeTag = ++_timeTag;
                 iocObject.ClassName = className;
                 iocObject.ProcessElements(elements);
                 var watch = Stopwatch.StartNew();
-                AlphaRoot.AddObject(iocObject.ID, false);
+                AlphaRoot.AddObject(iocObject.ID);
                 watch.Stop();
                 if (watch.ElapsedMilliseconds > 1000)
                     Console.Write(".");
@@ -514,7 +512,7 @@ namespace OPS5.Engine
         /// <param name="iObject"></param>
         private void InjectObject(IWMElement iObject)
         {
-            AlphaRoot.AddObject(iObject.ID, false);
+            AlphaRoot.AddObject(iObject.ID);
             ObjectAdded?.Invoke(this, iObject);
             _logger.WriteInfo($"Created Object #{iObject.ID} for {iObject.ClassName}", 2);
         }

@@ -6,7 +6,6 @@ namespace OPS5.Engine
 {
     internal class Config : IConfig
     {
-        public int ThreadThreshold { get; set; } = 20;
         public bool Ops5 { get; set; } = true;
         public string? Platform { get; set; }
         public string? FilePath { get; set; }
@@ -34,7 +33,6 @@ namespace OPS5.Engine
     {
         public int Verbosity { get; set; } = 0;
         public string Source { get; set; } = "";
-        public int MaxParallel { get; set; } = 1;
         public string PluginPath { get; set; } = "";
         public bool UseTokenParser { get; set; } = true;
     }

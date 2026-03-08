@@ -1,10 +1,8 @@
 ﻿using OPS5.Engine.Contracts;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 
 namespace OPS5.Engine
 {
@@ -18,11 +16,11 @@ namespace OPS5.Engine
         /// <summary>
         /// Dictionary of Alpha nodes currently in existence
         /// </summary>
-        private ConcurrentDictionary<int, IAlphaNode> _alphaMemory { get; set; } = new ConcurrentDictionary<int, IAlphaNode>();
+        private Dictionary<int, IAlphaNode> _alphaMemory { get; set; } = new Dictionary<int, IAlphaNode>();
         /// <summary>
         /// Dictionary with hash of Alpha nodes for fast lookup
         /// </summary>
-        private ConcurrentDictionary<string, IAlphaNode> _alphaHash { get; set; } = new ConcurrentDictionary<string, IAlphaNode>();
+        private Dictionary<string, IAlphaNode> _alphaHash { get; set; } = new Dictionary<string, IAlphaNode>();
 
         public AlphaMemory(IOPS5Logger logger, IAlphaNodeFactory alphaNodeFactory, IWorkingMemory workingMemory)
         {
@@ -34,11 +32,11 @@ namespace OPS5.Engine
 
         public IAlphaNode Reset()
         {
-            _alphaMemory = new ConcurrentDictionary<int, IAlphaNode>();
-            _alphaHash = new ConcurrentDictionary<string, IAlphaNode>(StringComparer.OrdinalIgnoreCase);
+            _alphaMemory = new Dictionary<int, IAlphaNode>();
+            _alphaHash = new Dictionary<string, IAlphaNode>(StringComparer.OrdinalIgnoreCase);
             _nextAlphaId = 0;
             IAlphaNode alphaRoot = _alphaNodeFactory.AlphaRoot();
-            alphaRoot.ID = Interlocked.Increment(ref _nextAlphaId);
+            alphaRoot.ID = ++_nextAlphaId;
             string hash = "Root";
             _alphaMemory.TryAdd(alphaRoot.ID, alphaRoot);
             _alphaHash.TryAdd(hash, alphaRoot);
@@ -80,7 +78,7 @@ namespace OPS5.Engine
         {
             IAlphaNode alphaNode = _alphaNodeFactory.NewAlphaNode(parent, test, new List<string>());
 
-            alphaNode.ID = Interlocked.Increment(ref _nextAlphaId);
+            alphaNode.ID = ++_nextAlphaId;
             string hash = alphaNode.Parent.ID.ToString() + alphaNode.Attribute + alphaNode.Op + alphaNode.Value;
             _alphaMemory.TryAdd(alphaNode.ID, alphaNode);
             _alphaHash.TryAdd(hash, alphaNode);

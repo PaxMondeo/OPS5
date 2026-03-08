@@ -1,10 +1,8 @@
 ﻿using OPS5.Engine.Contracts;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading;
 
 namespace OPS5.Engine
 {
@@ -14,7 +12,7 @@ namespace OPS5.Engine
         /// <summary>
         /// Dictionary of Beta nodes currently in existence
         /// </summary>
-        private ConcurrentDictionary<int, IBetaNode> _betaMemory { get; set; } = new ConcurrentDictionary<int, IBetaNode>();
+        private Dictionary<int, IBetaNode> _betaMemory { get; set; } = new Dictionary<int, IBetaNode>();
         private int _nextBetaId;
 
         private IWorkingMemory _workingMemory;
@@ -36,10 +34,10 @@ namespace OPS5.Engine
 
         public IBetaNode Reset()
         {
-            _betaMemory = new ConcurrentDictionary<int, IBetaNode>();
+            _betaMemory = new Dictionary<int, IBetaNode>();
             _nextBetaId = 0;
             IBetaNode betaRoot = _betaNodeFactory.NewBetaNode();
-            betaRoot.ID = Interlocked.Increment(ref _nextBetaId);
+            betaRoot.ID = ++_nextBetaId;
             _betaMemory.TryAdd(betaRoot.ID, betaRoot);
             IToken newToken = _tokenFactory.NewToken(1);
             betaRoot.Tokens.TryAdd(newToken.ID, newToken);
@@ -51,7 +49,7 @@ namespace OPS5.Engine
         {
             IBetaNode betaNode = _betaNodeFactory.NewBetaNode();
 
-            betaNode.ID = Interlocked.Increment(ref _nextBetaId);
+            betaNode.ID = ++_nextBetaId;
             _betaMemory.TryAdd(betaNode.ID, betaNode);
             return betaNode;
         }
