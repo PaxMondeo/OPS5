@@ -4,7 +4,6 @@ namespace OPS5.Engine.Contracts
     public interface IConfig
     {
         void ReadSettings(string platform);
-        int ThreadThreshold { get; set; }
         bool Ops5 { get; set; }
         string? Platform { get; set; }
         string? FilePath { get; set; }

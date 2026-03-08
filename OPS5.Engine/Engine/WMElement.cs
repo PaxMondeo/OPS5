@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Concurrent;
+
+
 
 using OPS5.Engine.Contracts;
 using OPS5.Engine.Models;
@@ -225,10 +225,7 @@ namespace OPS5.Engine
 
         public void AddAlphaNode(int node)
         {
-            lock (_alphaNodes)
-            {
-                _alphaNodes.Add(node);
-            }
+            _alphaNodes.Add(node);
         }
 
         public AttributesCollection GetAttributes()
@@ -297,17 +294,7 @@ namespace OPS5.Engine
 
         public bool AddToken(int id)
         {
-            try
-            {
-                lock (_tokens)
-                {
-                    _tokens.Add(id);
-                }
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            _tokens.Add(id);
             return true;
         }
 

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Concurrent;
+
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,7 +13,7 @@ namespace AttributeLibrary
         /// <summary>
         /// Dictionary of attribute key value pairs
         /// </summary>
-        public ConcurrentDictionary<string, string?> _attributes { get; set; } = new ConcurrentDictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, string?> _attributes { get; set; } = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// ctor
@@ -29,22 +29,19 @@ namespace AttributeLibrary
         /// <param name="attributes"></param>
         public AttributesCollection(Dictionary<string, string?> attributes)
         {
-            _attributes = new ConcurrentDictionary<string, string?>(attributes, StringComparer.OrdinalIgnoreCase);
-        }
-
-        public AttributesCollection(ConcurrentDictionary<string, string?> attributes)
-        {
-            _attributes = new ConcurrentDictionary<string, string?>(attributes, StringComparer.OrdinalIgnoreCase);
+            _attributes = new Dictionary<string, string?>(attributes, StringComparer.OrdinalIgnoreCase);
         }
 
         public AttributesCollection(AttributesCollection attributes)
         {
-            _attributes = attributes.GetAttributes();
+            _attributes = new Dictionary<string, string?>(attributes.GetAttributes(), StringComparer.OrdinalIgnoreCase);
         }
 
         public AttributesCollection(IEnumerable<KeyValuePair<string, string?>> values)
         {
-            _attributes = new ConcurrentDictionary<string, string?>(values, StringComparer.OrdinalIgnoreCase);
+            _attributes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kvp in values)
+                _attributes[kvp.Key] = kvp.Value;
         }
 
         /// <summary>
@@ -83,9 +80,9 @@ namespace AttributeLibrary
             return _attributes.Keys.ToList();
         }
 
-        public ConcurrentDictionary<string, string?> GetAttributes()
+        public Dictionary<string, string?> GetAttributes()
         {
-            return new ConcurrentDictionary<string, string?>(_attributes, StringComparer.OrdinalIgnoreCase);
+            return new Dictionary<string, string?>(_attributes, StringComparer.OrdinalIgnoreCase);
         }
 
         public KeyValuePair<string, string?> ElementAt(int pos)
@@ -109,7 +106,7 @@ namespace AttributeLibrary
         /// <param name="key"></param>
         public void Remove(string key)
         {
-            _attributes.TryRemove(key, out string? _);
+            _attributes.Remove(key);
         }
 
         /// <summary>

@@ -21,7 +21,7 @@ namespace OPS5.Engine.Contracts
         bool IsClassTest { get; }
         List<string> Classes { get; }
         void SetProperties(IAlphaNode parent, ConditionTest test, List<string> distinctAttributes);
-        void AddObject(int objectID, bool isThreaded);
+        void AddObject(int objectID);
         List<int> ListObjects();
         void RemoveObject(int objectID);
         int ObjectCount();

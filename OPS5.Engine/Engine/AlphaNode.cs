@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using OPS5.Engine.Contracts;
 
@@ -211,25 +210,13 @@ namespace OPS5.Engine
                 
             //Once the node is created, if it is not the root node, then evaluate all of the parent's _objects to initialise
 
-            if (_parent.ObjectCount() > _config.ThreadThreshold)
+            foreach (int objectID in _parent.ListObjects())
             {
-                _logger.WriteInfo("Gone Parallel", 3);
-                Parallel.ForEach(_parent.ListObjects(), new ParallelOptions { MaxDegreeOfParallelism = _config.ops5Config.MaxParallel }, (objectID) =>
-                {
-                    AddObject(objectID, true);
-                });
-                _logger.WriteInfo("Gone Single", 2);
-            }
-            else
-            {
-                foreach (int objectID in _parent.ListObjects())
-                {
-                    AddObject(objectID, false);
-                }
+                AddObject(objectID);
             }
         }
 
-        public void AddObject(int objectID, bool isThreaded)
+        public void AddObject(int objectID)
         {
             bool addObject = false;
 
@@ -382,57 +369,22 @@ namespace OPS5.Engine
                         //Update Object to add this Alpha node to its list of Alpha nodes
                         _workingMemory.GetWME(objectID).AddAlphaNode(_id);
                         //Add Object to list of _objects in this Alpha Node
-                        lock (_objects)
+                        _objects.Add(objectID);
+
+                        foreach (AlphaNode anode in AlphaChildren)
                         {
-                            _objects.Add(objectID);
+                            anode.AddObject(objectID);
                         }
 
-                        if (AlphaChildren.Count > _config.ThreadThreshold && !isThreaded)
+                        foreach (BetaNode bnode in BetaChildren)
                         {
-                            _logger.WriteInfo("Gone Parallel", 2);
-                            Parallel.ForEach(AlphaChildren, new ParallelOptions { MaxDegreeOfParallelism = _config.ops5Config.MaxParallel }, (anode) =>
+                            if (bnode.Negative)
                             {
-                                //Check to see if child is distinct
-                                anode.AddObject(objectID, true);
-                            });
-                            _logger.WriteInfo("Gone Single", 2);
-                        }
-                        else
-                        {
-                            foreach (AlphaNode anode in AlphaChildren)
-                            {
-                                anode.AddObject(objectID, isThreaded);
+                                bnode.NegativeRightActivation(objectID);
                             }
-                        }
-
-                        if (BetaChildren.Count > _config.ThreadThreshold && !isThreaded)
-                        {
-                            _logger.WriteInfo("Gone Parallel", 2);
-                            Parallel.ForEach(BetaChildren, new ParallelOptions { MaxDegreeOfParallelism = _config.ops5Config.MaxParallel }, (bnode) =>
+                            else
                             {
-                                if (bnode.Negative)
-                                {
-                                    bnode.NegativeRightActivation(objectID, true);
-                                }
-                                else
-                                {
-                                    bnode.RightActivation(objectID, true);
-                                }
-                            });
-                            _logger.WriteInfo("Gone Single", 2);
-                        }
-                        else
-                        {
-                            foreach (BetaNode bnode in BetaChildren)
-                            {
-                                if (bnode.Negative)
-                                {
-                                    bnode.NegativeRightActivation(objectID, isThreaded);
-                                }
-                                else
-                                {
-                                    bnode.RightActivation(objectID, isThreaded);
-                                }
+                                bnode.RightActivation(objectID);
                             }
                         }
                     }
@@ -461,14 +413,11 @@ namespace OPS5.Engine
                 foreach (BetaNode bnode in BetaChildren)
                 {
                     if (bnode.Negative)
-                        bnode.NegativeRemoveObject(objectID, true); //We aren't in a thread, but we want to prevent threads being formed for delete
+                        bnode.NegativeRemoveObject(objectID);
                     else
                         bnode.RemoveObject(objectID);
                 }
-                lock (_objects)
-                {
-                    _objects.Remove(objectID);
-                }
+                _objects.Remove(objectID);
 
 
 
@@ -494,7 +443,7 @@ namespace OPS5.Engine
                         }
                         if (!_distinctObjectHash.ContainsKey(hash))
                         {
-                            AddObject(w, true);
+                            AddObject(w);
                             break;
                         }
                     }

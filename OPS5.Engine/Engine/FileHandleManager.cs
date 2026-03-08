@@ -1,18 +1,17 @@
 using OPS5.Engine.Contracts;
 using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 
 namespace OPS5.Engine
 {
     /// <summary>
     /// Manages named file handles for file I/O during rule execution.
-    /// Thread-safe via ConcurrentDictionary.
     /// </summary>
     internal class FileHandleManager : IFileHandleManager
     {
         private readonly IOPS5Logger _logger;
-        private readonly ConcurrentDictionary<string, FileHandle> _handles = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, FileHandle> _handles = new Dictionary<string, FileHandle>(StringComparer.OrdinalIgnoreCase);
 
         public FileHandleManager(IOPS5Logger logger)
         {
@@ -25,7 +24,7 @@ namespace OPS5.Engine
             string modeUpper = mode.ToUpperInvariant();
 
             // Close existing handle if already open
-            if (_handles.TryRemove(key, out var existing))
+            if (_handles.Remove(key, out var existing))
             {
                 existing.Dispose();
                 _logger.WriteInfo($"FileHandleManager: Closed existing handle '{logicalName}' before reopening", 2);
@@ -68,7 +67,7 @@ namespace OPS5.Engine
         public void CloseFile(string logicalName)
         {
             string key = logicalName.ToUpperInvariant();
-            if (_handles.TryRemove(key, out var handle))
+            if (_handles.Remove(key, out var handle))
             {
                 handle.Dispose();
                 _logger.WriteInfo($"FileHandleManager: Closed '{logicalName}'", 2);

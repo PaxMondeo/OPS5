@@ -2,7 +2,7 @@ using OPS5.Engine.Contracts;
 using OPS5.Engine.Contracts.Parser;
 using AttributeLibrary;
 using System;
-using System.Collections.Concurrent;
+
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
@@ -835,7 +835,7 @@ namespace OPS5.Engine
             }
         }
 
-        private string FormatString(string inputToken, ConcurrentDictionary<string, string> variables)
+        private string FormatString(string inputToken, Dictionary<string, string> variables)
         {
             string outputToken = inputToken;
             Match match = Regex.Match(outputToken, @"\{\<[A-Z0-9.]*\>\}");

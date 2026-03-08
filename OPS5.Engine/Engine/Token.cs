@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
+
 using System.Linq;
 
 using OPS5.Engine.Contracts;
@@ -53,7 +53,7 @@ namespace OPS5.Engine
         /// <summary>
         /// Dictionary of variable and bound values for the Objects in this Token
         /// </summary>
-        public ConcurrentDictionary<string, string> Variables { get; set; } = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, string> Variables { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         private Dictionary<string, string> _tempVariables  = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         /// <summary>
@@ -79,10 +79,7 @@ namespace OPS5.Engine
 
         public void AddObject(int objectID)
         {
-            lock (ObjectIDs)
-            {
-                ObjectIDs.Add(objectID);
-            }
+            ObjectIDs.Add(objectID);
             UpdateObjects();
             _logger.WriteInfo($"Added object #{objectID} to token owned by {Owner}", 2);
         }
@@ -92,10 +89,7 @@ namespace OPS5.Engine
             //Just copies the objects and vars, but doesn't update the objects, in case it isn't used
             foreach (int objectID in ObjectIDs)
             {
-                lock (toToken.ObjectIDs)
-                {
-                    toToken.AddObject(objectID);
-                }
+                toToken.AddObject(objectID);
             }
             foreach (KeyValuePair<string, string> var in Variables)
             {
@@ -107,10 +101,7 @@ namespace OPS5.Engine
         {
             foreach (int objectID in newToken.ObjectIDs)
             {
-                lock (ObjectIDs)
-                {
-                    ObjectIDs.Add(objectID);
-                }
+                ObjectIDs.Add(objectID);
             }
             UpdateObjects();
             foreach (KeyValuePair<string, string> pair in newToken.Variables)
@@ -129,12 +120,7 @@ namespace OPS5.Engine
             foreach (int objectID in ObjectIDs)
             {
                 Recency.Add(_workingMemory.GetWME(objectID).TimeTag);
-                bool done = false;
-                //avoid concurrency errors
-                while (!done)
-                {
-                    done = _workingMemory.GetWME(objectID).AddToken(ID);
-                }
+                _workingMemory.GetWME(objectID).AddToken(ID);
             }
         }
 
@@ -180,10 +166,7 @@ namespace OPS5.Engine
         public void UpdateVariable(string var, string val)
         {
             string variable = var.ToUpper();
-            lock (Variables)
-            {
-                Variables.AddOrUpdate(variable, val, (key, oldValue) => val);
-            }
+            Variables[variable] = val;
         }
 
         public void UpdateTempVariable(string var, string val)
@@ -204,12 +187,9 @@ namespace OPS5.Engine
 
         public void SetVariables(Dictionary<string, string> vars)
         {
-            lock (Variables)
-            {
-                Variables.Clear();
-                foreach (KeyValuePair<string, string> pair in vars)
-                    Variables.TryAdd(pair.Key, pair.Value);
-            }
+            Variables.Clear();
+            foreach (KeyValuePair<string, string> pair in vars)
+                Variables.TryAdd(pair.Key, pair.Value);
         }
 
         public void Remove()
@@ -245,7 +225,7 @@ namespace OPS5.Engine
         {
             foreach(KeyValuePair<string, string> tempVar in _tempVariables)
             {
-                Variables.AddOrUpdate(tempVar.Key, tempVar.Value, (key, existingVal) => { return tempVar.Value;  });
+                Variables[tempVar.Key] = tempVar.Value;
             }
             _tempVariables.Clear();
         }

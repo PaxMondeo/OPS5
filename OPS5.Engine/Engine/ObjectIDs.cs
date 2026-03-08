@@ -2,7 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading;
+
+
 
 namespace OPS5.Engine
 {
@@ -14,17 +15,17 @@ namespace OPS5.Engine
 
         public int NextTokenID()
         {
-            return Interlocked.Increment(ref _tokenId);
+            return ++_tokenId;
         }
 
         public int NextObjectID()
         {
-            return Interlocked.Increment(ref _objectId);
+            return ++_objectId;
         }
 
         public int NextRuleID()
         {
-            return Interlocked.Increment(ref _ruleId);
+            return ++_ruleId;
         }
 
     }
