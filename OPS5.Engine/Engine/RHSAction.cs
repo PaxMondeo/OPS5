@@ -88,7 +88,6 @@ namespace OPS5.Engine
                 switch (a.ToUpper())
                 {
                     case "MAKE":
-                    case "MAKEMULTIPLE":
                     case "MODIFY":
                     case "REMOVE":
                         if (action.Count % 2 != 0)
@@ -102,13 +101,8 @@ namespace OPS5.Engine
                                     {
                                         case "CALC":
                                         case "VECTOR":
-                                        case "SPLIT":
                                         case "SUBSTR":
-                                        case "RANGE":
                                         case "FORMATTED":
-                                        case "MATRIX.APPENDX":
-                                        case "VECTOR.APPEND":
-                                        case "VECTOR.REMOVE":
                                             ok = true;
                                             break;
                                     }

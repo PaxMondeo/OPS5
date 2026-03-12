@@ -1,0 +1,17 @@
+; TabToTest - Column-aligned output with tabto
+; Demonstrates: (tabto N) within write actions
+
+; === Class definitions ===
+(literalize control step)
+
+; === Initial data ===
+(make control ^step start)
+
+; === Production rules ===
+
+; Write output with tabto padding between values
+(p write-tabto
+    (control ^step start)
+    -->
+    (write |A| (tabto 10) |B|)
+    (modify 1 ^step done))

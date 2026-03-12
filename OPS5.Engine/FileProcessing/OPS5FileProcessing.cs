@@ -25,7 +25,6 @@ namespace OPS5.Engine.FileProcessing
         private IWorkingMemory _workingMemory;
         private IAlphaMemory _alphaMemory;
         private IBetaMemory _betaMemory;
-        private IClassRelationships _classRelationships;
         private IObjectIDs _objectIDs;
 
 
@@ -40,7 +39,6 @@ namespace OPS5.Engine.FileProcessing
                               IUtils parserUtils,
                               ISourceFiles sourceFiles,
                               IObjectIDs objectIDs,
-                              IClassRelationships classRelationships,
                               IRHSActionFactory rhsActionFactory)
         {
             _logger = logger;
@@ -54,7 +52,6 @@ namespace OPS5.Engine.FileProcessing
             _parserUtils = parserUtils;
             _sourceFiles = sourceFiles;
             _objectIDs = objectIDs;
-            _classRelationships = classRelationships;
             _rhsActionFactory = rhsActionFactory;
         }
 
@@ -109,6 +106,12 @@ namespace OPS5.Engine.FileProcessing
             if (result.Classes.Classes.Count > 0)
                 ProcessClassModels(result.Classes, fileName);
 
+            if (result.Defaults.Count > 0)
+                ProcessDefaults(result.Defaults);
+
+            if (result.VectorAttributes.Count > 0)
+                ProcessVectorAttributes(result.VectorAttributes);
+
             if (result.Rules.Rules.Count > 0)
                 ProcessRuleModels(result.Rules, fileName);
 
@@ -120,33 +123,12 @@ namespace OPS5.Engine.FileProcessing
 
         private void ProcessClassModels(ClassFileModel classFileModel, string fileName)
         {
-            SetUpRelatedClasses(classFileModel.Classes);
-
             foreach (ClassModel classModel in classFileModel.Classes)
             {
-                if (!classModel.IsBase)
-                {
-                    if (_WMClasses.ClassExists(classModel.BaseClass))
-                    {
-                        foreach (string attr in _WMClasses.GetClass(classModel.BaseClass).GetUserAttributes())
-                            classModel.InheritedAtts.Add(attr);
-                    }
-                    else
-                        _logger.WriteError($"Invalid Syntax found. Attempt to inherit from non existent base class {classModel.BaseClass} in {fileName}: {classModel.Line}", "Parser");
-                }
-                IWMClass theClass;
-                if (classModel.IsBase)
-                    theClass = LiteraliseClass(classModel.ClassName, classModel.Atoms, fileName);
-                else
-                {
-                    classModel.Atoms = classModel.InheritedAtts.Concat(classModel.Atoms).ToList();
-                    theClass = LiteraliseClass(classModel.ClassName, classModel.Atoms, fileName);
-                    theClass.BasedOn = classModel.BaseClass;
-                }
+                IWMClass theClass = LiteraliseClass(classModel.ClassName, classModel.Atoms, fileName);
                 if (classModel.Disabled)
                     theClass.Enabled = false;
                 theClass.Comment = classModel.Comment;
-                theClass.IsBaseClass = classModel.IsBase;
             }
             _logger.WriteInfo($"Completed classes in {fileName}", 0);
         }
@@ -178,7 +160,7 @@ namespace OPS5.Engine.FileProcessing
                             prod.AddCondition(newCondition);
                             if (prod.Enabled)
                             {
-                                beta = SetUpNetwork(prod, newCondition, beta, cond.Negative, false, null);
+                                beta = SetUpNetwork(prod, newCondition, beta, cond.Negative);
                             }
                         }
                         else
@@ -191,29 +173,26 @@ namespace OPS5.Engine.FileProcessing
                     {
                         if (action.ClassName != "" && !_WMClasses.ClassExists(action.ClassName))
                             _logger.WriteError($"Attempted to {action.Command} object of non-existent Class {action.ClassName} in line {action.Line} of Rule {ruleModel.RuleName}", "File Processor");
-                        else if (action.ClassName != "" && _WMClasses.GetClass(action.ClassName).ReadOnly)
-                            _logger.WriteError($"Attempt to {action.Command} object of Read Only Class {action.ClassName} in line {action.Line} of Rule {ruleModel.RuleName}", "File Processor");
                         else
                         {
                             IRHSAction rhsAction = default!;
                             switch (action.Command)
                             {
                                 case "MAKE":
-                                case "MAKEMULTIPLE":
                                 case "MODIFY":
                                     rhsAction = _rhsActionFactory.NewRHSAction(action.Line, action.Actions); //Actions are objects
                                     break;
 
                                 case "REMOVE":
-                                case "REMOVEALL":
                                 case "WRITE":
                                 case "HALT":
-                                case "WAIT":
                                 case "SET":
                                 case "OPENFILE":
                                 case "CLOSEFILE":
                                 case "ACCEPT":
                                 case "ACCEPTLINE":
+                                case "CBIND":
+                                case "CALL":
                                     rhsAction = _rhsActionFactory.NewRHSAction(action.Line, action.Atoms); //Atoms are strings
                                     break;
                             }
@@ -223,24 +202,6 @@ namespace OPS5.Engine.FileProcessing
                         }
                     }
 
-                    if (ruleModel.IsFindPath)
-                    {
-                        var cond = ruleModel.PathCondition;
-                        Condition pathCondition = new Condition(cond.Order, cond.ClassName, cond.Line, cond.Negative);
-                        foreach (ConditionTest test in cond.Tests)
-                        {
-                            if (!_WMClasses.GetClass(cond.ClassName).AttributeExists(test.Attribute))
-                            {
-                                throw new Exception($"\n\nERROR - Class {pathCondition.ClassName} does not contain Attribute {test.Attribute} in {cond.Line}.\n\n");
-                            }
-                            pathCondition.Tests.Add(test);
-                        }
-
-                        prod.Conditions.Add(pathCondition);
-                        prod.Specificity += pathCondition.Tests.Count();
-                        beta = SetUpFindPath(prod, beta, pathCondition, ruleModel.FindPathInfo);
-
-                    }
                     if (prod.Enabled)
                         prod.PNode = beta;
                     _logger.WriteInfo($"Set Beta Node {beta.ID} as P Node for Rule {prod.Name}", 2);
@@ -254,6 +215,32 @@ namespace OPS5.Engine.FileProcessing
             _logger.WriteInfo($"Completed file {fileName}", 0);
         }
 
+        private void ProcessDefaults(List<DefaultModel> defaults)
+        {
+            foreach (var def in defaults)
+            {
+                if (_WMClasses.ClassExists(def.ClassName))
+                    _WMClasses.GetClass(def.ClassName).SetDefaults(def.Defaults);
+                else
+                    _logger.WriteError($"Default declaration references non-existent class '{def.ClassName}'", "File Processor");
+            }
+        }
+
+        private void ProcessVectorAttributes(List<VectorAttributeModel> vectorAttributes)
+        {
+            foreach (var va in vectorAttributes)
+            {
+                if (_WMClasses.ClassExists(va.ClassName))
+                {
+                    var wmClass = _WMClasses.GetClass(va.ClassName);
+                    foreach (string attr in va.Attributes)
+                        wmClass.SetAttributeType(attr, "VECTOR");
+                }
+                else
+                    _logger.WriteError($"Vector-attribute declaration references non-existent class '{va.ClassName}'", "File Processor");
+            }
+        }
+
         private void ProcessDataModels(DataFileModel dataFileModel, string fileName)
         {
             foreach (DataActionModel action in dataFileModel.Actions)
@@ -262,82 +249,6 @@ namespace OPS5.Engine.FileProcessing
                     Make(action.Atoms, fileName);
             }
             _logger.WriteInfo($"Completed file {fileName}", 0);
-        }
-
-
-        private void SetUpRelatedClasses(List<ClassModel> classModels)
-        {
-            //Sort out related classes.
-            //Relationships are defined using a virtual attribute that indicates that another class is a child of this class
-            //e.g. Sections: [ Section ]  indicates that the Section class is a child of this class
-            //The child class must have an attribute that points to the ID of its parent, e.g. PARENTID
-            //Therefore we must check for such attribute definitions and replace them with attributes in the children
-
-            foreach (ClassModel classModel in classModels)
-            {
-                List<string> fewerAtoms = new List<string>();
-                for (int a = 0; a < classModel.Atoms.Count; a++)
-                {
-                    string attribute = classModel.Atoms[a].ToUpper();
-                    Match match = Regex.Match(attribute, @":\s*\[\s*.+\s*\]");
-                    if (match.Success)
-                    {
-                        string childClass = match.Value;
-                        attribute = attribute.Substring(0, attribute.IndexOf(':')).Trim();
-                        childClass = Regex.Replace(childClass, @":|\[|\]", "");
-                        childClass = childClass.Trim();
-                        ClassModel? childModel = classModels.Where(_ => _.ClassName.ToUpper() == childClass).FirstOrDefault();
-                        if (childModel != null)
-                        {
-                            string childAttribute = classModel.ClassName.ToUpper() + "ID";
-                            childModel.Atoms.Add(childAttribute);
-                            _classRelationships.CreateRelationship(classModel.ClassName, childClass, attribute, childAttribute);
-                        }
-                    }
-                    else
-                    {
-                        fewerAtoms.Add(attribute);
-                    }
-                }
-                classModel.Atoms = fewerAtoms;
-            }
-
-        }
-
-        /// <summary>
-        /// Adds a new Class to the Engine
-        /// classFile indicates which source file the class belongs to
-        /// </summary>
-        /// <param name="className"></param>
-        /// <param name="classFile"></param>
-        /// <returns></returns>
-        private IWMClass LiteraliseClass(string className, string classFile)
-        {
-            if (!_sourceFiles.ClassFiles.ContainsKey(classFile.ToUpper()))
-                _sourceFiles.ClassFiles.Add(classFile.ToUpper(), new SourceFile(classFile, _sourceFiles.ProjectFile.FilePath, "", "", true, false));
-            else
-                _sourceFiles.ClassFiles[classFile.ToUpper()].Loaded = true;
-
-            IWMClass newClass = default!;
-            if (className.Contains(":"))
-            {
-                string[] classes = className.Split(':');
-                if (_WMClasses.ClassExists(classes[1]))
-                {
-                    newClass = _WMClasses.Add(classes[0], classes[1]);
-                    newClass.ClassFile = classFile;
-                }
-                else
-                {
-                    _logger.WriteError($"\n\nERROR - attempt to base class {classes[0]} on non-existent class {classes[1]}", "LiteraliseClass");
-                }
-            }
-            else
-            {
-                newClass = _WMClasses.Add(className);
-                newClass.ClassFile = classFile;
-            }
-            return newClass;
         }
 
         /// <summary>
@@ -354,7 +265,7 @@ namespace OPS5.Engine.FileProcessing
         }
 
 
-        private IBetaNode SetUpNetwork(IRule rule, Condition condition, IBetaNode betanode, bool negative, bool isFindPath, IFindPathInfo? findPath)
+        private IBetaNode SetUpNetwork(IRule rule, Condition condition, IBetaNode betanode, bool negative)
         {
             IAlphaNode alphaNode = _workingMemory.AlphaRoot;
             if (!negative)
@@ -429,18 +340,11 @@ namespace OPS5.Engine.FileProcessing
                     }
                 }
             }
-            IBetaNode betaNode = _betaMemory.BuildShareBeta(betanode, alphaNode, newTests, rule.Bindings, negative, condition.IsAny, isFindPath, findPath);
+            IBetaNode betaNode = _betaMemory.BuildShareBeta(betanode, alphaNode, newTests, rule.Bindings, negative, condition.IsAny);
             //Then set current Beta
             return betaNode;
         }
 
-
-        private IBetaNode SetUpFindPath(IRule rule, IBetaNode betaParent, Condition condition, IFindPathInfo findPath)
-        {
-            IBetaNode betaNode = SetUpNetwork(rule, condition, betaParent, false, true, findPath);
-
-            return betaNode;
-        }
 
         public void Make(List<string> atoms)
         {

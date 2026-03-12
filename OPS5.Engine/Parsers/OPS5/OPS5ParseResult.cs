@@ -1,4 +1,5 @@
 using OPS5.Engine.Models;
+using System.Collections.Generic;
 
 namespace OPS5.Engine.Parsers.OPS5
 {
@@ -10,5 +11,7 @@ namespace OPS5.Engine.Parsers.OPS5
         public ClassFileModel Classes { get; set; } = new ClassFileModel();
         public DataFileModel Data { get; set; } = new DataFileModel();
         public RuleFileModel Rules { get; set; } = new RuleFileModel();
+        public List<DefaultModel> Defaults { get; set; } = new();
+        public List<VectorAttributeModel> VectorAttributes { get; set; } = new();
     }
 }

@@ -61,6 +61,16 @@ namespace OPS5.Engine.Parsers.OPS5
                                     ParseProduction(stream, result, fileName);
                                     break;
 
+                                case "default":
+                                    stream.Advance();
+                                    ParseDefault(stream, result, fileName);
+                                    break;
+
+                                case "vector-attribute":
+                                    stream.Advance();
+                                    ParseVectorAttribute(stream, result, fileName);
+                                    break;
+
                                 default:
                                     _logger.WriteError($"Unknown top-level form '({keyword}' at line {stream.Current.Line} in {fileName}", fileName);
                                     SkipToMatchingParen(stream);
@@ -123,8 +133,6 @@ namespace OPS5.Engine.Parsers.OPS5
             var classModel = new ClassModel("")
             {
                 ClassName = className,
-                IsBase = true,
-                BaseClass = "",
                 Atoms = attributes
             };
 
@@ -137,6 +145,79 @@ namespace OPS5.Engine.Parsers.OPS5
             {
                 _logger.WriteError($"Invalid literalize in {fileName}: {ex.Message}", fileName);
             }
+        }
+
+        // ==================== Default ====================
+
+        private void ParseDefault(TokenStream stream, OPS5ParseResult result, string fileName)
+        {
+            // (default class-name ^attr1 val1 ^attr2 val2 ...)
+            // Already consumed: ( default
+
+            if (!stream.Check(TokenType.Identifier))
+            {
+                _logger.WriteError($"Expected class name after 'default' at line {stream.Current.Line}", fileName);
+                SkipToMatchingParen(stream);
+                return;
+            }
+
+            string className = stream.Current.Value;
+            stream.Advance();
+
+            var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            while (!stream.Check(TokenType.RightParen) && !stream.IsAtEnd)
+            {
+                if (stream.Check(TokenType.Caret))
+                {
+                    stream.Advance(); // skip ^
+                    if (stream.Check(TokenType.Identifier))
+                    {
+                        string attr = stream.Current.Value;
+                        stream.Advance();
+                        string val = ConsumeAtomValueRaw(stream);
+                        defaults[attr] = val;
+                    }
+                }
+                else
+                {
+                    stream.Advance();
+                }
+            }
+
+            if (stream.Check(TokenType.RightParen))
+                stream.Advance();
+
+            result.Defaults.Add(new DefaultModel { ClassName = className, Defaults = defaults });
+        }
+
+        // ==================== Vector-Attribute ====================
+
+        private void ParseVectorAttribute(TokenStream stream, OPS5ParseResult result, string fileName)
+        {
+            // (vector-attribute class-name attr1 attr2 ...)
+            // Already consumed: ( vector-attribute
+
+            if (!stream.Check(TokenType.Identifier))
+            {
+                _logger.WriteError($"Expected class name after 'vector-attribute' at line {stream.Current.Line}", fileName);
+                SkipToMatchingParen(stream);
+                return;
+            }
+
+            string className = stream.Current.Value;
+            stream.Advance();
+
+            var attributes = new List<string>();
+            while (!stream.Check(TokenType.RightParen) && !stream.IsAtEnd)
+            {
+                attributes.Add(stream.Current.Value);
+                stream.Advance();
+            }
+
+            if (stream.Check(TokenType.RightParen))
+                stream.Advance();
+
+            result.VectorAttributes.Add(new VectorAttributeModel { ClassName = className, Attributes = attributes });
         }
 
         // ==================== Top-Level Make ====================
@@ -266,7 +347,7 @@ namespace OPS5.Engine.Parsers.OPS5
             classNameCounts[className]++;
             int occurrence = classNameCounts[className];
 
-            var conditionModel = new ConditionModel(order++, className, negative, "", false);
+            var conditionModel = new ConditionModel(order++, className, negative, "");
 
             // Generate alias for 2nd+ occurrence of a positive condition
             if (!negative && occurrence > 1)
@@ -427,14 +508,14 @@ namespace OPS5.Engine.Parsers.OPS5
                     ParseRHSBind(stream, ruleModel);
                     break;
 
+                case "call":
+                    ParseRHSCall(stream, ruleModel);
+                    break;
+
                 case "crlf":
                     // Standalone (crlf) — skip
                     if (stream.Check(TokenType.RightParen))
                         stream.Advance();
-                    break;
-
-                case "call":
-                    ParseRHSCall(stream, ruleModel);
                     break;
 
                 case "accept":
@@ -454,9 +535,7 @@ namespace OPS5.Engine.Parsers.OPS5
                     break;
 
                 case "cbind":
-                case "default":
-                    _logger.WriteError($"Unsupported OPS5 action '{action}' at line {stream.Current.Line} — skipping", ruleModel.FileName);
-                    SkipToMatchingParen(stream);
+                    ParseRHSCBind(stream, ruleModel);
                     break;
 
                 default:
@@ -761,7 +840,7 @@ namespace OPS5.Engine.Parsers.OPS5
         private void ParseRHSCall(TokenStream stream, RuleModel ruleModel)
         {
             // (call progname arg1 arg2 ...)
-            var atoms = new List<string> { "EXECUTE" };
+            var atoms = new List<string> { "CALL" };
 
             while (!stream.Check(TokenType.RightParen) && !stream.IsAtEnd)
                 atoms.Add(ConsumeAtomValue(stream, ruleModel.RuleName));
@@ -769,7 +848,7 @@ namespace OPS5.Engine.Parsers.OPS5
             if (stream.Check(TokenType.RightParen))
                 stream.Advance();
 
-            var actionModel = new ActionModel("EXECUTE", "") { Atoms = atoms };
+            var actionModel = new ActionModel("CALL", "") { Atoms = atoms };
             ruleModel.Actions.Add(actionModel);
         }
 
@@ -812,6 +891,21 @@ namespace OPS5.Engine.Parsers.OPS5
 
             var atoms = new List<string> { "CLOSEFILE", logicalName };
             var actionModel = new ActionModel("CLOSEFILE", "") { Atoms = atoms };
+            ruleModel.Actions.Add(actionModel);
+        }
+
+        private void ParseRHSCBind(TokenStream stream, RuleModel ruleModel)
+        {
+            // (cbind <var>)
+            string var_ = ConsumeAtomValue(stream, ruleModel.RuleName);
+
+            if (stream.Check(TokenType.RightParen))
+                stream.Advance();
+
+            var actionModel = new ActionModel("CBIND", "")
+            {
+                Atoms = new List<string> { "CBIND", var_ }
+            };
             ruleModel.Actions.Add(actionModel);
         }
 

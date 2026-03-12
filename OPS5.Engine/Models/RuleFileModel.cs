@@ -1,5 +1,4 @@
-﻿using OPS5.Engine.Contracts;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace OPS5.Engine.Models
@@ -18,9 +17,6 @@ namespace OPS5.Engine.Models
         public List<ConditionModel> Conditions { get; set; } = new List<ConditionModel>();
         public List<ActionModel> Actions { get; set; } = new List<ActionModel>();
         public Dictionary<string, int> ConditionAliases { get; set; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        public bool IsFindPath { get; set; }
-        public IFindPathInfo FindPathInfo { get; set; } = default!;
-        public ConditionModel PathCondition { get; set; } = default!;
     }
 
     public class ConditionModel : FileModelBase
@@ -30,14 +26,12 @@ namespace OPS5.Engine.Models
         public bool Negative { get; set; }
         public List<ConditionTest> Tests { get; set; } = new List<ConditionTest>();
         public bool IsAny { get; set; } = false;
-        public bool IsFindPath { get; set; } = false;
         public string? Alias { get; set; }
-        public ConditionModel(int order, string className, bool negative, string line, bool isFindPath) : base(line)
+        public ConditionModel(int order, string className, bool negative, string line) : base(line)
         {
             Order = order;
             ClassName = className;
             Negative = negative;
-            IsFindPath = isFindPath;
         }
 
     }

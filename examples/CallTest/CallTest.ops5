@@ -1,0 +1,17 @@
+; CallTest - External program invocation
+; Demonstrates: (call progname arg1 arg2 ...)
+
+; === Class definitions ===
+(literalize control step)
+
+; === Initial data ===
+(make control ^step start)
+
+; === Production rules ===
+
+; Call a system command that produces output
+(p call-hostname
+    (control ^step start)
+    -->
+    (call hostname)
+    (modify 1 ^step done))

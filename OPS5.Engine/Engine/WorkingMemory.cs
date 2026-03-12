@@ -169,7 +169,7 @@ namespace OPS5.Engine
 
             foreach (KeyValuePair<string, string?> attribute in attributes)
             {
-                result = FilterObjects(result, FixSourceID(attribute.Key), Utilities.Formatting.CheckForDateTime(attribute.Value));
+                result = FilterObjects(result, attribute.Key, Utilities.Formatting.CheckForDateTime(attribute.Value));
             }
 
             List<IWMElement> iObjects = result.ToList();
@@ -179,39 +179,22 @@ namespace OPS5.Engine
             return response;
         }
 
-        private string FixSourceID(string key)
-        {
-            return key.Replace("SOURCEID", "ID");
-        }
-
         public IWMElement? AddOrUpdateObject(string className, AttributesCollection attributes, bool mergeDuplicates = false)
         {
-            if (attributes.ContainsKey("SOURCEID"))
+            IWMClass iClass = _WMClasses.GetClass(className);
+            if (attributes.ContainsKey("ID"))
             {
-                if (attributes.ContainsKey("ID"))
-                    attributes.SetAttributeValue("ID", attributes.GetVal("SOURCEID"));
-                else
-                    attributes.Add("ID", attributes.GetVal("SOURCEID"));
-                attributes.Remove("SOURCEID");
+                if (int.TryParse(attributes.GetVal("ID"), out int id))
+                {
+                    if(id > 0)
+                        iClass.TrySetObjectCount(id);
+                    else
+                        attributes.SetAttributeValue("ID", iClass.NextObjectID());
+                }
             }
             else
             {
-                IWMClass iClass = _WMClasses.GetClass(className);
-                if (attributes.ContainsKey("ID"))
-                {
-                    if (int.TryParse(attributes.GetVal("ID"), out int id))
-                    {
-                        if(id > 0)
-                            iClass.TrySetObjectCount(id);
-                        else
-                            attributes.SetAttributeValue("ID", iClass.NextObjectID());
-                    }
-                }
-                else
-                {
-                    attributes.Add("ID", iClass.NextObjectID());
-                }
-
+                attributes.Add("ID", iClass.NextObjectID());
             }
 
             if (mergeDuplicates) // Avoid making duplicate objects for repeated data in JSON files
@@ -263,20 +246,20 @@ namespace OPS5.Engine
         /// <returns></returns>
         public IWMElement? AddObject(string className, AttributesCollection attributes, bool modifying)
         {
-            IWMElement? iocObject = null;
+            IWMElement? wme = null;
             if (_WMClasses.ClassExists(className))
             {
 
-                iocObject = _objectFactory.NewObject(className);
-                _wmes[iocObject.ID] = iocObject;
-                iocObject.TimeTag = ++_timeTag;
-                iocObject.ProcessAttributes(attributes);
+                wme = _objectFactory.NewObject(className);
+                _wmes[wme.ID] = wme;
+                wme.TimeTag = ++_timeTag;
+                wme.ProcessAttributes(attributes);
 
-                AlphaRoot.AddObject(iocObject.ID);
+                AlphaRoot.AddObject(wme.ID);
                 if (_logger.Verbosity > 1)
                 {
-                    string message = $"Created Object #{iocObject.ID} for {iocObject.ClassName}";
-                    foreach (KeyValuePair<string, string?> attr in iocObject.GetAttributes())
+                    string message = $"Created Object #{wme.ID} for {wme.ClassName}";
+                    foreach (KeyValuePair<string, string?> attr in wme.GetAttributes())
                     {
                         message += $"\n {attr.Key} {Utilities.Formatting.CheckForDateTime(attr.Value)}";
                     }
@@ -284,13 +267,13 @@ namespace OPS5.Engine
                 }
 
                 if (modifying)
-                    ObjectChanged?.Invoke(this, iocObject);
+                    ObjectChanged?.Invoke(this, wme);
                 else
-                    ObjectAdded?.Invoke(this, iocObject);
+                    ObjectAdded?.Invoke(this, wme);
             }
             else
                 _logger.WriteError($"Attempted to create object for non-existent Class {className}", "WorkingMemory.AddObject");
-            return iocObject;
+            return wme;
         }
 
         /// <summary>
@@ -324,19 +307,19 @@ namespace OPS5.Engine
         /// <param name="elements"></param>
         public void AddObjectAsync(string className, string[] elements)
         {
-            IWMElement? iocObject = null;
+            IWMElement? wme = null;
             if (_WMClasses.ClassExists(className))
             {
-                iocObject = _objectFactory.NewObject(className);
-                _wmes[iocObject.ID] = iocObject;
-                iocObject.TimeTag = ++_timeTag;
-                iocObject.ProcessElements(elements);
-                IncomingData.Enqueue(iocObject);
+                wme = _objectFactory.NewObject(className);
+                _wmes[wme.ID] = wme;
+                wme.TimeTag = ++_timeTag;
+                wme.ProcessElements(elements);
+                IncomingData.Enqueue(wme);
 
                 if (_logger.Verbosity > 1)
                 {
-                    string message = $"Created Object #{iocObject.ID} for {iocObject.ClassName}";
-                    foreach (KeyValuePair<string, string?> attr in iocObject.GetAttributes())
+                    string message = $"Created Object #{wme.ID} for {wme.ClassName}";
+                    foreach (KeyValuePair<string, string?> attr in wme.GetAttributes())
                     {
                         message += $"\n {attr.Key} {Utilities.Formatting.CheckForDateTime(attr.Value)}";
                     }
@@ -438,35 +421,35 @@ namespace OPS5.Engine
         /// <param name="elements"></param>
         public IWMElement AddObject(string className, string[] elements)
         {
-            IWMElement iocObject = default!;
+            IWMElement wme = default!;
             if (_WMClasses.ClassExists(className))
             {
 
-                iocObject = _objectFactory.NewObject();
-                _wmes[iocObject.ID] = iocObject;
-                iocObject.TimeTag = ++_timeTag;
-                iocObject.ClassName = className;
-                iocObject.ProcessElements(elements);
+                wme = _objectFactory.NewObject();
+                _wmes[wme.ID] = wme;
+                wme.TimeTag = ++_timeTag;
+                wme.ClassName = className;
+                wme.ProcessElements(elements);
                 var watch = Stopwatch.StartNew();
-                AlphaRoot.AddObject(iocObject.ID);
+                AlphaRoot.AddObject(wme.ID);
                 watch.Stop();
                 if (watch.ElapsedMilliseconds > 1000)
                     Console.Write(".");
                 if (_logger.Verbosity > 1)
                 {
-                    string message = $"Created Object #{iocObject.ID} for {iocObject.ClassName}";
-                    foreach (KeyValuePair<string, string?> attr in iocObject.GetAttributes())
+                    string message = $"Created Object #{wme.ID} for {wme.ClassName}";
+                    foreach (KeyValuePair<string, string?> attr in wme.GetAttributes())
                     {
                         message += $"\n {attr.Key} {attr.Value}";
                     }
                     _logger.WriteInfo(message, 2);
                 }
 
-                ObjectAdded?.Invoke(this, iocObject);
+                ObjectAdded?.Invoke(this, wme);
             }
             else
                 _logger.WriteError($"Attempted to create object for non-existent Class {className}", "AddObject");
-            return iocObject;
+            return wme;
         }
 
         public void UpdateDatesTimes()
@@ -507,7 +490,7 @@ namespace OPS5.Engine
 
 
         /// <summary>
-        /// Adds the object to working memory, and inserts it into the SQL table if the class represents a DB table
+        /// Adds the object to working memory and notifies the alpha network
         /// </summary>
         /// <param name="iObject"></param>
         private void InjectObject(IWMElement iObject)

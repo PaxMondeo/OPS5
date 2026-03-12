@@ -1,0 +1,19 @@
+; ComputeTest - Standalone compute as RHS action
+; Demonstrates: (compute <var> expr) with nested expressions
+
+; === Class definitions ===
+(literalize input value)
+(literalize result computed)
+
+; === Initial data ===
+(make input ^value 10)
+
+; === Production rules ===
+
+; Compute a nested expression: (+ (* value 2) 5) = 25
+(p compute-nested
+    (input ^value <v>)
+    -->
+    (compute <r> (+ (* <v> 2) 5))
+    (make result ^computed <r>)
+    (remove 1))

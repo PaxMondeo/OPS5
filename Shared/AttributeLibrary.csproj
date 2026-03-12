@@ -8,10 +8,5 @@
     <Description>Shared attribute utilities for OPS5 Rules Engine</Description>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="XpressNet\**" />
-    <EmbeddedResource Remove="XpressNet\**" />
-    <None Remove="XpressNet\**" />
-  </ItemGroup>
 
 </Project>

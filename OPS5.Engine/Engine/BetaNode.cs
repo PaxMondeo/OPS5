@@ -111,19 +111,9 @@ namespace OPS5.Engine
         /// </summary>
         public bool Negative { get; set; }
         /// <summary>
-        /// Indicates that this node searches the Objects in the parent Alpha node to find a linked path
-        /// </summary>
-        public bool IsFindPath { get; set; }
-        /// <summary>
         /// Indicates that for this Beta node, Right Activation will only cause a maximum of 1 Token to be added
         /// </summary>
         public bool IsAny { get; set; }
-        /// <summary>
-        /// Path information used in a FindPath Beta node to search for a linked path
-        /// </summary>
-        public IFindPathInfo FindPath { get; set; } = default!;
-
-        private IFindPathInfo _findPath = default!;
 
 
 
@@ -149,10 +139,9 @@ namespace OPS5.Engine
             Tokens = new Dictionary<int, IToken>();
             Bindings = new Dictionary<string, Binding>(StringComparer.OrdinalIgnoreCase);
             Negative = false;
-            IsFindPath = false;
         }
 
-        public void SetProperties(IBetaNode betaParent, IAlphaNode alphaParent, List<ConditionTest> tests, Dictionary<string, Binding> bindings, bool negative, bool isAny, bool isFindPath, IFindPathInfo? findPath)
+        public void SetProperties(IBetaNode betaParent, IAlphaNode alphaParent, List<ConditionTest> tests, Dictionary<string, Binding> bindings, bool negative, bool isAny)
         {
             _alphaParent = alphaParent;
             _betaParent = betaParent;
@@ -160,13 +149,6 @@ namespace OPS5.Engine
             Bindings = bindings;
             Negative = negative;
             IsAny = isAny;
-            IsFindPath = isFindPath;
-
-            if (isFindPath && findPath != null)
-            {
-                _findPath = findPath.Clone(); //Keep copy of unadulterated findpath info
-                //FindPath = _findPath.Clone();
-            }
 
             _alphaParent.AttachChildBeta(this);
             _betaParent.AttachChildNode(this);
@@ -241,12 +223,6 @@ namespace OPS5.Engine
 
             try
             {
-                if (IsFindPath)
-                {
-                    throw new NotSupportedException("FindPath is not supported in OPS5.");
-                }
-                else //Not FindPath
-                {
                         foreach (int objectID in objectIDs)
                             {
                             //Make a copy of the token so we don't update variables in passed token
@@ -275,7 +251,6 @@ namespace OPS5.Engine
                                     }
                                 }
                             }
-                }
             }
                 catch (Exception ex)
                 {
@@ -605,7 +580,7 @@ namespace OPS5.Engine
             return tokens;
         }
 
-        private void BindFirstObjectVariables(IToken token, IWMElement iocObject)
+        private void BindFirstObjectVariables(IToken token, IWMElement wme)
         {
             //The first Object is added to an empty token, so no tests are performed
             //Subsequent Objects are tested before their variable bindings are added
@@ -614,7 +589,7 @@ namespace OPS5.Engine
             foreach (KeyValuePair<string, Binding> binding in Bindings.Where(b => b.Value.ObjectIndex == 1))
             {
                 //There is a binding to this Object, so bind the variable
-                var varVal = iocObject.AttributeValue(binding.Value.Attribute);
+                var varVal = wme.AttributeValue(binding.Value.Attribute);
                 if (_config.Ops5 && varVal is string && varVal.StartsWith("|") && varVal.EndsWith("|"))
                     varVal = varVal.Replace("|", "");
                 if (varVal is string && varVal != "")
@@ -629,9 +604,9 @@ namespace OPS5.Engine
         /// Performs the tests in the token on the object, looking for a match
         /// </summary>
         /// <param name="token"></param>
-        /// <param name="iocObject"></param>
+        /// <param name="wme"></param>
         /// <returns></returns>
-        private bool PerformTests(IToken token, IWMElement iocObject)
+        private bool PerformTests(IToken token, IWMElement wme)
         {
             bool res = true;
             char[] trimChars = new char[] { ' ', '\t', '\n' };
@@ -647,7 +622,7 @@ namespace OPS5.Engine
                         if (!token.HasVar(binding.Key))
                         {
                             //There is a binding to this Object, so bind the variable
-                            var varVal = iocObject.AttributeValue(binding.Value.Attribute);
+                            var varVal = wme.AttributeValue(binding.Value.Attribute);
                             if (_config.Ops5 && varVal is string && varVal.StartsWith("|") && varVal.EndsWith("|"))
                                 varVal = varVal.Replace("|", "");
                             if (varVal is string && varVal != "")
@@ -754,8 +729,8 @@ namespace OPS5.Engine
                         }
                         else
                         {
-                            var objectVal = iocObject.AttributeValue(test.Attribute);
-                            string objectType = iocObject.GetAttributeType(test.Attribute);
+                            var objectVal = wme.AttributeValue(test.Attribute);
+                            string objectType = wme.GetAttributeType(test.Attribute);
                             string varVal = "";
                             if (objectVal is string &&  objectVal != "") //arg1 = string value of attribute in this Object
                             {
@@ -1095,27 +1070,6 @@ namespace OPS5.Engine
             }
             return res;
         }
-        public void UpdatePathVars(IToken token, int objectID, int step)
-        {
-            //Used in FindPath to update the bindings in the token to reflect the values in the next Object
-            try
-            {
-                foreach (KeyValuePair<string, string> binding in FindPath.VariableBindings)
-                {
-                    var val = _workingMemory.GetWME(objectID).GetAttributeValue(binding.Value);
-                    if(val is string)
-                        token.UpdateVariable(binding.Key, val);
-                }
-                token.UpdateVariable("<INDEX>", step.ToString());
-                token.UpdateVariable(FindPath.FromVar, FindPath.FromVals[step - 1]);
-                token.UpdateVariable(FindPath.ToVar, FindPath.ToVals[step - 1]);
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"FindPath variable binding error: {ex.Message}");
-            }
-        }
-
         public void AttachChildNode(IBetaNode node)
         {
             BetaChildren.Add(node);

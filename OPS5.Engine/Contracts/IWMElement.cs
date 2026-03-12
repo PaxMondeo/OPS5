@@ -1,4 +1,4 @@
-﻿using AttributeLibrary;
+using AttributeLibrary;
 using System;
 using System.Collections.Generic;
 
@@ -23,9 +23,6 @@ namespace OPS5.Engine.Contracts
         List<string?> GetUserAttributeValues();
         void SetAttributeValue(string attribute, string value);
         string GetAttributeType(string attributeName);
-        bool IsPersistent();
-        bool PersistIndividualObjects();
         bool HasAttribute(string attributeName);
-        bool HasChildClass(string attributeName);
     }
 }

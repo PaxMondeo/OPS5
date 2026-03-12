@@ -1,0 +1,21 @@
+; AliasTest - Duplicate class conditions (auto-aliasing)
+; Demonstrates: matching two WMEs of the same class in one rule
+
+; === Class definitions ===
+(literalize block name value)
+(literalize result pair)
+
+; === Initial data ===
+(make block ^name A ^value 1)
+(make block ^name B ^value 2)
+
+; === Production rules ===
+
+; Match two different block WMEs and combine their values
+(p match-two-blocks
+    (block ^name A ^value <v1>)
+    (block ^name B ^value <v2>)
+    -->
+    (bind <sum> (+ <v1> <v2>))
+    (make result ^pair <sum>)
+    (halt))
