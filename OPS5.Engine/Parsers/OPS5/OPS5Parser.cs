@@ -696,7 +696,7 @@ namespace OPS5.Engine.Parsers.OPS5
         {
             // (compute <result> expression)
             // expression is prefix notation: (op arg1 arg2) or nested
-            // Engine expects atoms: ["SET", "<var>", "=", "CALC", "arg1 arg2 op"]
+            // Engine expects atoms: ["SET", "<var>", "=", "CALC", "op arg1 arg2"]
 
             string resultVar = ConsumeAtomValue(stream, ruleModel.RuleName);
 
@@ -714,7 +714,7 @@ namespace OPS5.Engine.Parsers.OPS5
         private void CollectComputeExpression(TokenStream stream, List<string> atoms, string ruleName)
         {
             // OPS5 uses prefix notation: (op arg1 arg2)
-            // Engine Calc uses postfix: arg1 arg2 op
+            // Engine Calc also uses prefix: op arg1 arg2
             if (stream.Check(TokenType.LeftParen))
             {
                 stream.Advance(); // skip (
@@ -728,12 +728,12 @@ namespace OPS5.Engine.Parsers.OPS5
                 else if (stream.Check(TokenType.Backslash)) { op = "\\"; stream.Advance(); }
                 else { op = ConsumeAtomValue(stream, ruleName); }
 
+                // Add operator BEFORE operands (prefix notation)
+                atoms.Add(op);
+
                 // Read operands (could be nested)
                 CollectComputeExpression(stream, atoms, ruleName); // arg1
                 CollectComputeExpression(stream, atoms, ruleName); // arg2
-
-                // Add operator AFTER operands (postfix for Calc)
-                atoms.Add(op);
 
                 if (stream.Check(TokenType.RightParen))
                     stream.Advance();

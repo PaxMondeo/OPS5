@@ -26,7 +26,7 @@ namespace OPS5.Engine.DI
             services.AddSingleton<IOPS5Settings, OPS5Settings>();
 
             // Transient types
-            services.AddTransient<ICalculator, RPN>();
+            services.AddTransient<ICalculator, PrefixCalculator>();
             services.AddTransient<IWMElementFactory, WMElementFactory>();
             services.AddTransient<IBetaNodeFactory, BetaNodeFactory>();
             services.AddTransient<IWMClassFactory, WMClassFactory>();
