@@ -32,11 +32,6 @@ namespace OPS5.Engine
         /// </summary>
         private int _timeTag;
         public int TimeTag => _timeTag;
-        /// <summary>
-        /// Queue of Objects to be inserted into working memory at the appropriate time
-        /// </summary>
-        public Queue<IWMElement> IncomingData { get; set; } = new Queue<IWMElement>();
-
         public event EventHandler<IWMElement> ObjectAdded = default!;
         public event EventHandler<IWMElement> ObjectChanged = default!;
         public event EventHandler<IWMElement> ObjectRemoved = default!;
@@ -55,7 +50,6 @@ namespace OPS5.Engine
             _wmes = new Dictionary<int, IWMElement>();
             AlphaRoot = alphaRoot;
             BetaRoot = betaRoot;
-            IncomingData = new Queue<IWMElement>();
             _timeTag = 1;
         }
 
@@ -109,28 +103,11 @@ namespace OPS5.Engine
         }
 
 
-        public List<IWMElement> ListWMEsByClassSinceLastCycle(string className)
-        {
-            return _wmes.Where(wme => wme.Value.ClassName == className.ToUpper()).Where(wme => wme.Value.TimeTag == (TimeTag)).ToDictionary(wme => wme.Key, wme => wme.Value).Values.ToList();
-        }
-
-        public List<IWMElement> ListWMEsSinceLastCycle()
-        {
-            return _wmes.Where(wme => wme.Value.TimeTag == (TimeTag)).ToDictionary(wme => wme.Key, wme => wme.Value).Values.ToList();
-        }
-
         public IWMElement GetWME(int objectID)
         {
             if (!_wmes.TryGetValue(objectID, out var wme))
                 throw new KeyNotFoundException($"Working memory object #{objectID} not found");
             return wme;
-        }
-
-        public IWMElement? FindWME(string className, string id)
-        {
-            AttributesCollection attFil = new AttributesCollection();
-            attFil.Add("ID", id);
-            return ListWMEsByClass(className, attFil).FirstOrDefault();
         }
 
         /// <summary>
@@ -146,7 +123,7 @@ namespace OPS5.Engine
 
             for (int x = 0; x < elements.Count() - 1; x += 2)
             {
-                result = FilterObjects(result, elements[x], Utilities.Formatting.CheckForDateTime(elements[x + 1]));
+                result = FilterObjects(result, elements[x], elements[x + 1]);
             }
 
             List<IWMElement> iObjects = result.ToList();
@@ -169,7 +146,7 @@ namespace OPS5.Engine
 
             foreach (KeyValuePair<string, string?> attribute in attributes)
             {
-                result = FilterObjects(result, attribute.Key, Utilities.Formatting.CheckForDateTime(attribute.Value));
+                result = FilterObjects(result, attribute.Key, attribute.Value);
             }
 
             List<IWMElement> iObjects = result.ToList();
@@ -178,64 +155,6 @@ namespace OPS5.Engine
                 response.Add(iObject.ID);
             return response;
         }
-
-        public IWMElement? AddOrUpdateObject(string className, AttributesCollection attributes, bool mergeDuplicates = false)
-        {
-            IWMClass iClass = _WMClasses.GetClass(className);
-            if (attributes.ContainsKey("ID"))
-            {
-                if (int.TryParse(attributes.GetVal("ID"), out int id))
-                {
-                    if(id > 0)
-                        iClass.TrySetObjectCount(id);
-                    else
-                        attributes.SetAttributeValue("ID", iClass.NextObjectID());
-                }
-            }
-            else
-            {
-                attributes.Add("ID", iClass.NextObjectID());
-            }
-
-            if (mergeDuplicates) // Avoid making duplicate objects for repeated data in JSON files
-            {
-                var found = ListWMEsByClass(className, attributes);
-                if (found.Count > 0)
-                    return found[0];
-            }
-
-            if (attributes.ContainsKey("ID"))
-            {
-                int? objectId = GetObjectIdFromID(className, attributes.GetVal("ID"));
-                if (objectId != null)
-                {
-                    //Change to support JSON data where the same child object is repeated.
-                    //Update the object, but retain attribute values that aren't being updated?
-                    IWMElement iObject = GetWME((int)objectId);
-                    foreach(KeyValuePair<string, string?> attr in iObject.GetAttributes())
-                    {
-                        if (!attributes.ContainsKey(attr.Key))
-                        {
-                            attributes.Add(attr.Key, attr.Value);
-                        }
-                    }
-                    RemoveObject((int)objectId, false);
-                }
-            }
-
-            return AddObject(className, attributes, false);
-        }
-
-        public int? GetObjectIdFromID(string className, string? ID)
-        {
-            KeyValuePair<int, IWMElement> wmePtr = _wmes.Where(_ => _.Value.ClassName == className.ToUpper() && _.Value.GetAttributeValue("ID") == ID).FirstOrDefault();
-            if (wmePtr.Value != null)
-                return wmePtr.Key;
-            else
-                return null;
-        }
-
-
 
         /// <summary>
         /// Adds an Object to working memory
@@ -261,7 +180,7 @@ namespace OPS5.Engine
                     string message = $"Created Object #{wme.ID} for {wme.ClassName}";
                     foreach (KeyValuePair<string, string?> attr in wme.GetAttributes())
                     {
-                        message += $"\n {attr.Key} {Utilities.Formatting.CheckForDateTime(attr.Value)}";
+                        message += $"\n {attr.Key} {attr.Value}";
                     }
                     _logger.WriteInfo(message, 2);
                 }
@@ -277,18 +196,6 @@ namespace OPS5.Engine
         }
 
         /// <summary>
-        /// Adds a new object of the given Class, decoding the list of atoms into attribte/value pairs
-        /// </summary>
-        /// <param name="className"></param>
-        /// <param name="atoms"></param>
-        /// <returns></returns>
-        public IWMElement AddObject(string className, List<string> atoms)
-        {
-            string[] elements = atoms.ToArray();
-            return AddObject(className, elements);
-        }
-
-        /// <summary>
         /// Adds a new object to WM
         /// </summary>
         /// <param name="iObject"></param>
@@ -299,38 +206,6 @@ namespace OPS5.Engine
             AlphaRoot.AddObject(iObject.ID);
             ObjectAdded?.Invoke(this, iObject);
         }
-
-        /// <summary>
-        /// Adds the request to create an object to the IncomingData queue
-        /// </summary>
-        /// <param name="className"></param>
-        /// <param name="elements"></param>
-        public void AddObjectAsync(string className, string[] elements)
-        {
-            IWMElement? wme = null;
-            if (_WMClasses.ClassExists(className))
-            {
-                wme = _objectFactory.NewObject(className);
-                _wmes[wme.ID] = wme;
-                wme.TimeTag = ++_timeTag;
-                wme.ProcessElements(elements);
-                IncomingData.Enqueue(wme);
-
-                if (_logger.Verbosity > 1)
-                {
-                    string message = $"Created Object #{wme.ID} for {wme.ClassName}";
-                    foreach (KeyValuePair<string, string?> attr in wme.GetAttributes())
-                    {
-                        message += $"\n {attr.Key} {Utilities.Formatting.CheckForDateTime(attr.Value)}";
-                    }
-                    _logger.WriteInfo(message, 2);
-                }
-            }
-            else
-                _logger.WriteError($"Attempted to create object for non-existent Class {className}", "WorkingMemory.AddObjectAsync");
-
-        }
-
 
         public void ModifyObject(IWMElement iObject)
         {
@@ -452,110 +327,8 @@ namespace OPS5.Engine
             return wme;
         }
 
-        public void UpdateDatesTimes()
-        {
-            DateTime theTime = DateTime.Now;
-            string time = string.Format("{0:HH:mm}", theTime);
-            string date = string.Format("{0:dd-MM-yyyy}", theTime);
-            string day = string.Format("{0:ddd}", theTime).ToUpper();
-            string dateTime = string.Format("{0:dd-MM-yyyy HH:mm}", theTime);
-            string dom = string.Format("{0:dd}", theTime);
-            string dow = $"{(int)theTime.DayOfWeek}";
-            bool found = false;
-            List<IWMElement> iObjects = _wmes.Values.Where(w => w.ClassName == "DATETIME").ToList();
-            foreach (IWMElement iObject in iObjects)
-            {
-                if (iObject.GetAttributeValue("DATETIME") == dateTime)
-                    found = true;
-                else
-                {
-                    if (!RemoveObject(iObject.ID, true))
-                        _logger.WriteError($"Failed to remove DATETIME Object", "UpdateDatesTimes");
-                }
-            }
-            if (!found)
-            {
-                string[] elements = { "DATE", date, "TIME", time, "DAY", day, "DATETIME", dateTime, "DOM", dom, "DOW", dow };
-                AddObject("DATETIME", elements);
-            }
-        }
-
-        public void InjectObjects()
-        {
-            while (IncomingData.TryDequeue(out IWMElement? iObject))
-            {
-                InjectObject(iObject);
-            }
-        }
-
-
-        /// <summary>
-        /// Adds the object to working memory and notifies the alpha network
-        /// </summary>
-        /// <param name="iObject"></param>
-        private void InjectObject(IWMElement iObject)
-        {
-            AlphaRoot.AddObject(iObject.ID);
-            ObjectAdded?.Invoke(this, iObject);
-            _logger.WriteInfo($"Created Object #{iObject.ID} for {iObject.ClassName}", 2);
-        }
-
-        /// <summary>
-        /// action[1] of RemoveAll is the class of objects to remove
-        /// </summary>
-        /// <param name="atoms"></param>
-        public void DoRemoveAll(List<string> atoms)
-        {
-            string className = atoms[1];
-            if(atoms.Count > 2)
-            {
-                atoms.RemoveRange(0, 2);
-                DoRemoveAll(className, atoms);
-            }
-            else
-                DoRemoveAll(className);
-        }
-
-        public void DoRemoveAll(string className)
-        {
-            List<IWMElement> iObjects = ListWMEsByClass(className);
-            foreach (IWMElement iObject in iObjects)
-            {
-                if (!RemoveObject(iObject.ID, true))
-                    _logger.WriteError("Failed to remove Object", "DoActions");
-            }
-        }
-
-        public void DoRemoveAll(string className, List<string> attributeFilter)
-        {
-            List<IWMElement> iObjects = ListWMEsByClass(className, attributeFilter);
-            foreach (IWMElement iObject in iObjects)
-            {
-                if (!RemoveObject(iObject.ID, true))
-                    _logger.WriteError("Failed to remove Object", "DoActions");
-            }
-        }
-
-        public void DoRemoveAll(string className, AttributesCollection attributeFilter)
-        {
-            List<IWMElement> iObjects = ListWMEsByClass(className, attributeFilter);
-            foreach (IWMElement iObject in iObjects)
-            {
-                if (!RemoveObject(iObject.ID, true))
-                    _logger.WriteError("Failed to remove Object", "DoActions");
-            }
-        }
-
-        public List<int> ListObjectIDs()
-        {
-            return _wmes.Keys.ToList();
-        }
-
         public void ListWM(string className)
         {
-            if (className.ToUpper() == "DATETIME")
-                UpdateDatesTimes();
-
             string message;
             try
             {
@@ -597,9 +370,6 @@ namespace OPS5.Engine
 
             if (bits[1] is string className)
             {
-                if(className.ToUpper() == "DATETIME")
-                    UpdateDatesTimes();
-
                 IWMClass wmClass = _WMClasses.GetClass(className);
                 string message = $"Objects of Class {className}\nObject#\t";
 
@@ -612,7 +382,7 @@ namespace OPS5.Engine
                     try
                     {
                         string attName = bits[z].ToUpper();
-                        string? attVal = Utilities.Formatting.CheckForDateTime( bits[z + 1]);
+                        string? attVal = bits[z + 1];
                         ArgumentNullException.ThrowIfNull(attVal);
                         iObjects2 = iObjects2.Where(w => w.Value.GetAttributeValue(attName) is string a && a.ToUpper() == attVal.ToUpper()).ToDictionary(w => w.Key, w => w.Value);
                     }
@@ -715,8 +485,7 @@ namespace OPS5.Engine
 
         public void ListWM()
         {
-            UpdateDatesTimes();
-            foreach (WMClass opsClass in _WMClasses.GetEnabledClasses())
+            foreach (WMClass opsClass in _WMClasses.GetClasses())
             {
                 ListWM(opsClass.ClassName);
             }
@@ -725,38 +494,6 @@ namespace OPS5.Engine
         public bool WMEExists(int objectID)
         {
             return _wmes.ContainsKey(objectID);
-        }
-
-        private string[] SerialiseAttributes(AttributesCollection attributes)
-        {
-            List<string> attrs = new List<string>();
-
-            foreach (KeyValuePair<string, string?> attribute in attributes)
-            {
-                if(attribute.Value is string)
-                {
-                    attrs.Add(attribute.Key);
-                    attrs.Add(attribute.Value);
-                }
-            }
-
-            return attrs.ToArray();
-        }
-
-        private string[] SerialiseKeys(List<string> keys, AttributesCollection attributes)
-        {
-            List<string> keyValues = new List<string>();
-
-            foreach (string key in keys)
-            {
-                if (attributes.GetVal(key) is string val)
-                {
-                    keyValues.Add(key);
-                    keyValues.Add(val);
-                }
-            }
-
-            return keyValues.ToArray();
         }
 
     }

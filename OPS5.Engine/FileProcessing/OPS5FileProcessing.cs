@@ -92,15 +92,11 @@ namespace OPS5.Engine.FileProcessing
             {
                 _sourceFiles.OPS5File.FileName = fileName;
                 _sourceFiles.OPS5File.FilePath = filePath;
-                _sourceFiles.OPS5File.Comment = "";
-                _sourceFiles.OPS5File.Loaded = true;
-                _sourceFiles.OPS5File.Saved = true;
             }
         }
 
         private void ProcessOPS5File(string file, string fileName)
         {
-            _config.Ops5 = true;
             var result = _ops5Parser.Parse(file, fileName);
 
             if (result.Classes.Classes.Count > 0)
@@ -125,10 +121,7 @@ namespace OPS5.Engine.FileProcessing
         {
             foreach (ClassModel classModel in classFileModel.Classes)
             {
-                IWMClass theClass = LiteraliseClass(classModel.ClassName, classModel.Atoms, fileName);
-                if (classModel.Disabled)
-                    theClass.Enabled = false;
-                theClass.Comment = classModel.Comment;
+                LiteraliseClass(classModel.ClassName, classModel.Atoms, fileName);
             }
             _logger.WriteInfo($"Completed classes in {fileName}", 0);
         }
@@ -140,7 +133,6 @@ namespace OPS5.Engine.FileProcessing
                 foreach (RuleModel ruleModel in ruleFileModel.Rules)
                 {
                     IRule prod = _rules.AddRule(ruleModel);
-                    prod.Comment = ruleModel.Comment;
                     IBetaNode beta = _workingMemory.BetaRoot;
                     foreach (ConditionModel cond in ruleModel.Conditions)
                     {
@@ -158,10 +150,7 @@ namespace OPS5.Engine.FileProcessing
                             newCondition.IsAny = cond.IsAny;
                             newCondition.Alias = cond.Alias;
                             prod.AddCondition(newCondition);
-                            if (prod.Enabled)
-                            {
-                                beta = SetUpNetwork(prod, newCondition, beta, cond.Negative);
-                            }
+                            beta = SetUpNetwork(prod, newCondition, beta, cond.Negative);
                         }
                         else
                         {
@@ -202,8 +191,7 @@ namespace OPS5.Engine.FileProcessing
                         }
                     }
 
-                    if (prod.Enabled)
-                        prod.PNode = beta;
+                    prod.PNode = beta;
                     _logger.WriteInfo($"Set Beta Node {beta.ID} as P Node for Rule {prod.Name}", 2);
 
                 }
@@ -234,7 +222,7 @@ namespace OPS5.Engine.FileProcessing
                 {
                     var wmClass = _WMClasses.GetClass(va.ClassName);
                     foreach (string attr in va.Attributes)
-                        wmClass.SetAttributeType(attr, "VECTOR");
+                        wmClass.SetVectorAttribute(attr);
                 }
                 else
                     _logger.WriteError($"Vector-attribute declaration references non-existent class '{va.ClassName}'", "File Processor");
@@ -257,11 +245,9 @@ namespace OPS5.Engine.FileProcessing
         /// <param name="className"></param>
         /// <param name="attributes"></param>
         /// <returns></returns>
-        private IWMClass LiteraliseClass(string className, List<string> attributes, string classFile)
+        private void LiteraliseClass(string className, List<string> attributes, string classFile)
         {
-            IWMClass newClass = _WMClasses.Add(className, attributes);
-            newClass.ClassFile = classFile;
-            return newClass;
+            _WMClasses.Add(className, attributes);
         }
 
 

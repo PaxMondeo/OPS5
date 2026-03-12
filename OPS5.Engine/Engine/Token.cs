@@ -35,8 +35,6 @@ namespace OPS5.Engine
     {
         private IOPS5Logger _logger;
         private IWorkingMemory _workingMemory;
-        private IConfig _config;
-
         public int ID { get; set; }
         /// <summary>
         /// List of Objects that make up the Token
@@ -73,7 +71,6 @@ namespace OPS5.Engine
         {
             _logger = logger;
             _workingMemory = workingMemory;
-            _config = config;
             Fired = false;
         }
 
@@ -97,22 +94,6 @@ namespace OPS5.Engine
             }
         }
 
-        internal void Append(IToken newToken)
-        {
-            foreach (int objectID in newToken.ObjectIDs)
-            {
-                ObjectIDs.Add(objectID);
-            }
-            UpdateObjects();
-            foreach (KeyValuePair<string, string> pair in newToken.Variables)
-            {
-                if (!Variables.ContainsKey(pair.Key))
-                {
-                    Variables.TryAdd(pair.Key, pair.Value);
-                }
-            }
-        }
-
         public void UpdateObjects()
         {
             Recency.Clear();
@@ -122,22 +103,6 @@ namespace OPS5.Engine
                 Recency.Add(_workingMemory.GetWME(objectID).TimeTag);
                 _workingMemory.GetWME(objectID).AddToken(ID);
             }
-        }
-
-        public bool Compare(IToken newToken)
-        {
-            bool res = true;
-            if (newToken.ObjectIDs.Count == ObjectIDs.Count)
-            {
-                for(int x = 0; x < ObjectIDs.Count; x++)
-                    if(ObjectIDs[x] != newToken.ObjectIDs[x])
-                        res = false;
-            }
-            else
-            {
-                res = false;
-            }
-            return res;
         }
 
         public string GetObjectKey()
@@ -192,12 +157,6 @@ namespace OPS5.Engine
                 Variables.TryAdd(pair.Key, pair.Value);
         }
 
-        public void Remove()
-        {
-            throw new NotImplementedException("Token.Remove");
-        }
-
-
         public string TryGetVariableValue(string variable)
         {
             string val = variable;  //in case it isn't a var - we call this to check if it is as well
@@ -208,10 +167,8 @@ namespace OPS5.Engine
             else if (Variables.ContainsKey(var))
                 val = Variables[var];
 
-            if (_config.Ops5 && val.StartsWith("|"))
+            if (val.StartsWith("|"))
                 val = val.Replace("|", "");
-
-            val = Utilities.Formatting.CheckForDateTime(val);
 
             return val;
         }

@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using OPS5.Engine.Contracts;
@@ -30,7 +29,8 @@ namespace OPS5.Engine
     internal class WMClass : IWMClass
     {
         private IOPS5Logger _logger;
-        private Dictionary<string, string> _attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private HashSet<string> _attributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private HashSet<string> _vectorAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, string> _defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
@@ -50,93 +50,33 @@ namespace OPS5.Engine
             }
         }
 
-        /// <summary>
-        /// Author's comment describing the Class
-        /// </summary>
-        public string Comment { get; set; } = "";
-        /// <summary>
-        /// True if this Class is enabled for use
-        /// </summary>
-        public bool Enabled { get; set; } = true;
-        public string ClassFile { get; set; } = string.Empty;
-
         private int _objectCount = 0;
 
         public WMClass(IOPS5Logger logger)
         {
             _logger = logger;
-            _attributes.Add("ID","NUMBER");
+            _attributes.Add("ID");
         }
 
 
-        public void AddAttribute(string attribute, string dataType = "GENERAL")
+        public void AddAttribute(string attribute)
         {
-            _attributes.Add(attribute.ToUpper(), dataType);
+            _attributes.Add(attribute.ToUpper());
         }
 
         public void AddAttributes(List<string> attributes)
         {
             foreach (string attribute in attributes)
             {
-                string attr = attribute.ToUpper();
-                if (attr.Contains(":"))
+                string attr = attribute.ToUpper().Trim();
+                try
                 {
-                    attr = attr.Substring(0, attr.IndexOf(':'));
-                    attr = attr.Trim();
-                    try
-                    {
-                        _attributes.Add(attr, "VECTOR");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.WriteError($"Could not add Vector attribute {attr} to class {ClassName}, {ex.Message}", "AddAttributes");
-                    }
+                    _attributes.Add(attr);
                 }
-                else if (attr.Contains(" "))
+                catch (Exception ex)
                 {
-                    string[] atts = attr.Split(' ');
-                    if (atts.Length > 1)
-                    {
-                        string att0 = atts[0].Trim();
-                        string att1 = atts[1].Trim();
-                        switch (att1)
-                        {
-                            case "DATE":
-                            case "TIME":
-                            case "DATETIME":
-                            case "NUMBER":
-                            case "TEXT":
-                                try
-                                {
-                                    _attributes.Add(att0, att1);
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.WriteError($"Could not add {att1} attribute {att0} to class {ClassName}, {ex.Message}", "AddAttributes");
-                                }
-                                break;
-                            default:
-                                try
-                                {
-                                    _attributes.Add(attr, "GENERAL");
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.WriteError($"Could not add attribute {attr} to class {ClassName}, {ex.Message}", "AddAttributes");
-                                }
-                                break;
-                        }
-                    }
+                    _logger.WriteError($"Could not add attribute {attr} to class {ClassName}, {ex.Message}", "AddAttributes");
                 }
-                else
-                    try
-                    {
-                        _attributes.Add(attr, "GENERAL");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.WriteError($"Could not add attribute {attr} to class {ClassName}, {ex.Message}", "AddAttributes");
-                    }
             }
         }
 
@@ -145,7 +85,7 @@ namespace OPS5.Engine
             attributeName = attributeName.ToUpper();
             if (attributeName == "ID" || attributeName == "CLASS")
                 return true;
-            else return _attributes.ContainsKey(attributeName);
+            else return _attributes.Contains(attributeName);
         }
 
         public string NextObjectID()
@@ -162,22 +102,12 @@ namespace OPS5.Engine
 
         public List<string> GetUserAttributes()
         {
-            return _attributes.Keys.Where(_ => _ != "ID").ToList();
+            return _attributes.Where(_ => _ != "ID").ToList();
         }
 
         public List<string> GetAttributes()
         {
-            return _attributes.Keys.ToList();
-        }
-
-        public string GetAttributeType(string attributeName)
-        {
-            if (_attributes.ContainsKey(attributeName))
-                return _attributes[attributeName];
-            else
-            {
-                return ""; //Default is to just return the raw value if this function can't identify a type.
-            }
+            return _attributes.ToList();
         }
 
         public void SetDefaults(Dictionary<string, string> defaults)
@@ -193,11 +123,14 @@ namespace OPS5.Engine
             return null;
         }
 
-        public void SetAttributeType(string attributeName, string dataType)
+        public void SetVectorAttribute(string attributeName)
         {
-            string key = attributeName.ToUpper();
-            if (_attributes.ContainsKey(key))
-                _attributes[key] = dataType;
+            _vectorAttributes.Add(attributeName.ToUpper());
+        }
+
+        public bool IsVectorAttribute(string attributeName)
+        {
+            return _vectorAttributes.Contains(attributeName.ToUpper());
         }
     }
 

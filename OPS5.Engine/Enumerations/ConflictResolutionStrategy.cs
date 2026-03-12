@@ -15,12 +15,6 @@ namespace OPS5.Engine.Enumerations
         /// Lexicographic — orders by most recent WME in each instantiation
         /// (sorted descending), then specificity tiebreaker, fires ONE rule per cycle.
         /// </summary>
-        LEX,
-
-        /// <summary>
-        /// MEA ordering with all-fire — fires ALL matching instantiations per cycle
-        /// rather than selecting a single winner.
-        /// </summary>
-        MEA_ALL
+        LEX
     }
 }

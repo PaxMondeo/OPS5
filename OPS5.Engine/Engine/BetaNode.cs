@@ -590,7 +590,7 @@ namespace OPS5.Engine
             {
                 //There is a binding to this Object, so bind the variable
                 var varVal = wme.AttributeValue(binding.Value.Attribute);
-                if (_config.Ops5 && varVal is string && varVal.StartsWith("|") && varVal.EndsWith("|"))
+                if (varVal is string && varVal.StartsWith("|") && varVal.EndsWith("|"))
                     varVal = varVal.Replace("|", "");
                 if (varVal is string && varVal != "")
                 {
@@ -623,7 +623,7 @@ namespace OPS5.Engine
                         {
                             //There is a binding to this Object, so bind the variable
                             var varVal = wme.AttributeValue(binding.Value.Attribute);
-                            if (_config.Ops5 && varVal is string && varVal.StartsWith("|") && varVal.EndsWith("|"))
+                            if (varVal is string && varVal.StartsWith("|") && varVal.EndsWith("|"))
                                 varVal = varVal.Replace("|", "");
                             if (varVal is string && varVal != "")
                             {
@@ -653,15 +653,6 @@ namespace OPS5.Engine
                                     case "CALC":
                                     case "COMPUTE":
                                         result = _calculator.DoCalc(computation.ToList(), token);
-                                        break;
-                                    case "ADDYEARS":
-                                    case "ADDMONTHS":
-                                    case "ADDWEEKS":
-                                    case "ADDDAYS":
-                                    case "ADDHOURS":
-                                    case "ADDMINS":
-                                    case "ADDSECS":
-                                        //TODO: result = _dateTimeCalculator.AddCalc(binding.Value.ComputeType, computation.ToList());
                                         break;
 
                                     default:
@@ -730,7 +721,6 @@ namespace OPS5.Engine
                         else
                         {
                             var objectVal = wme.AttributeValue(test.Attribute);
-                            string objectType = wme.GetAttributeType(test.Attribute);
                             string varVal = "";
                             if (objectVal is string &&  objectVal != "") //arg1 = string value of attribute in this Object
                             {
@@ -783,268 +773,51 @@ namespace OPS5.Engine
                                         }
                                         else if (test.Operator == "=")
                                         {
-                                            switch (objectType)
+                                            if (objectVal.ToUpper() != varVal.ToUpper())
                                             {
-                                                case "DATE":
-                                                    if (DateTime.TryParse(objectVal, out DateTime oDate) && DateTime.TryParse(varVal, out DateTime vDate))
-                                                    {
-                                                        if (oDate.Date != vDate.Date)
-                                                            res = false;
-                                                    }
-                                                    else
-                                                        res = false;
-                                                    break;
-
-                                                case "DATETIME":
-                                                    if (DateTime.TryParse(objectVal, out DateTime oDateTime) && DateTime.TryParse(varVal, out DateTime vDateTime))
-                                                    {
-                                                        if (oDateTime != vDateTime)
-                                                            res = false;
-                                                    }
-                                                    else
-                                                        res = false;
-                                                    break;
-
-                                                case "TIME":
-                                                    if (DateTime.TryParse(objectVal, out DateTime oTime) && DateTime.TryParse(varVal, out DateTime vTime))
-                                                    {
-                                                        if (TimeSpan.Compare(oTime.TimeOfDay, vTime.TimeOfDay) != 0)
-                                                            res = false;
-                                                    }
-                                                    else
-                                                        res = false;
-                                                    break;
-
-                                                default:
-                                                    if (objectVal.ToUpper() != varVal.ToUpper())
-                                                    {
-                                                        res = false;
-                                                    }
-                                                    break;
+                                                res = false;
                                             }
                                         }
                                         else if (test.Operator == "<>" || test.Operator == "!=")
                                         {
-                                            switch (objectType)
+                                            if (objectVal.ToUpper() == varVal.ToUpper())
                                             {
-                                                case "DATE":
-                                                    if (DateTime.TryParse(objectVal, out DateTime oDate) && DateTime.TryParse(varVal, out DateTime vDate))
-                                                    {
-                                                        if (oDate.Date == vDate.Date)
-                                                            res = false;
-                                                    }
-                                                    else
-                                                        res = false;
-                                                    break;
-
-                                                case "DATETIME":
-                                                    if (DateTime.TryParse(objectVal, out DateTime oDateTime) && DateTime.TryParse(varVal, out DateTime vDateTime))
-                                                    {
-                                                        if (oDateTime == vDateTime)
-                                                            res = false;
-                                                    }
-                                                    else
-                                                        res = false;
-                                                    break;
-
-                                                case "TIME":
-                                                    if (DateTime.TryParse(objectVal, out DateTime oTime) && DateTime.TryParse(varVal, out DateTime vTime))
-                                                    {
-                                                        if (TimeSpan.Compare(oTime.TimeOfDay, vTime.TimeOfDay) == 0)
-                                                            res = false;
-                                                    }
-                                                    else
-                                                        res = false;
-                                                    break;
-
-                                                default:
-                                                    if (objectVal.ToUpper() == varVal.ToUpper())
-                                                    {
-                                                        res = false;
-                                                    }
-                                                    break;
+                                                res = false;
                                             }
                                         }
                                         else
                                         {
-                                            switch (objectType)
+                                            if (double.TryParse(objectVal, out double dObj) && double.TryParse(varVal, out double dVar))
                                             {
-                                                case "DATE":
-                                                    if (DateTime.TryParse(objectVal, out DateTime oDate) && DateTime.TryParse(varVal, out DateTime vDate))
-                                                    {
-                                                        switch (test.Operator)
-                                                        {
-                                                            case "<":
-                                                                if (oDate.Date >= vDate.Date)
-                                                                {
-                                                                    res = false;
-                                                                }
-                                                                break;
-                                                            case ">":
-                                                                if (oDate.Date <= vDate.Date)
-                                                                {
-                                                                    res = false;
-                                                                }
-                                                                break;
-                                                            case ">=":
-                                                                if (oDate.Date < vDate.Date)
-                                                                {
-                                                                    res = false;
-                                                                }
-                                                                break;
-                                                            case "<=":
-                                                                if (oDate.Date > vDate.Date)
-                                                                {
-                                                                    res = false;
-                                                                }
-                                                                break;
-                                                            default:
-                                                                res = false;
-                                                                break;
-                                                        }
-                                                    }
-                                                    else
-                                                        res = false;
-                                                    break;
-
-                                                case "DATETIME":
-                                                    if (DateTime.TryParse(objectVal, out DateTime d1) && DateTime.TryParse(varVal, out DateTime d2))
-                                                    {
-                                                        switch (test.Operator)
-                                                        {
-                                                            case "<":
-                                                                if (d1 >= d2)
-                                                                    res = false;
-                                                                break;
-
-                                                            case ">":
-                                                                if (d1 <= d2)
-                                                                    res = 
-                                                                        false;
-                                                                break;
-                                                            case ">=":
-                                                                if (d1 < d2)
-                                                                    res = false;
-                                                                break;
-
-                                                            case "<=":
-                                                                if (d1 > d2)
-                                                                    res = false;
-                                                                break;
-
-                                                            default:
-                                                                res = false;
-                                                                break;
-                                                        }
-                                                    }
-                                                    else
-                                                        res = false;
-                                                    break;
-
-                                                case "TIME":
-                                                    if (DateTime.TryParse(objectVal, out DateTime oTime) && DateTime.TryParse(varVal, out DateTime vTime))
-                                                    {
-                                                        switch (test.Operator)
-                                                        {
-                                                            case "<":
-                                                                if (TimeSpan.Compare(oTime.TimeOfDay, vTime.TimeOfDay) >= 0)
-                                                                    res = false;
-                                                                break;
-
-                                                            case ">":
-                                                                if (TimeSpan.Compare(oTime.TimeOfDay, vTime.TimeOfDay) <= 0)
-                                                                    res = false;
-                                                                break;
-
-                                                            case ">=":
-                                                                if (TimeSpan.Compare(oTime.TimeOfDay, vTime.TimeOfDay) < 0)
-                                                                    res = false;
-                                                                break;
-
-                                                            case "<=":
-                                                                if (TimeSpan.Compare(oTime.TimeOfDay, vTime.TimeOfDay) > 0)
-                                                                    res = false;
-                                                                break;
-
-                                                            default:
-                                                                res = false;
-                                                                break;
-                                                        }
-                                                    }
-                                                    else
-                                                        res = false;
-                                                    break;
-
-                                                 case   "NUMBER":
-                                                    if (double.TryParse(objectVal, out double v1) && double.TryParse(varVal, out double v2))
-                                                    {
-                                                        switch (test.Operator)
-                                                        {
-                                                            case "<":
-                                                                if (v1 >= v2)
-                                                                {
-                                                                    res = false;
-                                                                }
-                                                                break;
-                                                            case ">":
-                                                                if (v1 <= v2)
-                                                                {
-                                                                    res = false;
-                                                                }
-                                                                break;
-                                                            case ">=":
-                                                                if (v1 < v2)
-                                                                {
-                                                                    res = false;
-                                                                }
-                                                                break;
-                                                            case "<=":
-                                                                if (v1 > v2)
-                                                                {
-                                                                    res = false;
-                                                                }
-                                                                break;
-                                                            default:
-                                                                res = false;
-                                                                break;
-                                                        }
-                                                    }
-                                                    break;
-
-                                                default:
-                                                    if (double.TryParse(objectVal, out double dObj) && double.TryParse(varVal, out double dVar))
-                                                    {
-                                                        switch (test.Operator)
-                                                        {
-                                                            case "<":
-                                                                if (dObj >= dVar)
-                                                                    res = false;
-                                                                break;
-                                                            case ">":
-                                                                if (dObj <= dVar)
-                                                                    res = false;
-                                                                break;
-                                                            case ">=":
-                                                                if (dObj < dVar)
-                                                                    res = false;
-                                                                break;
-                                                            case "<=":
-                                                                if (dObj > dVar)
-                                                                    res = false;
-                                                                break;
-                                                            default:
-                                                                res = false;
-                                                                break;
-                                                        }
-                                                    }
-                                                    else
-                                                    {
-                                                        if (objectVal.ToUpper() == varVal.ToUpper())
-                                                        {
+                                                switch (test.Operator)
+                                                {
+                                                    case "<":
+                                                        if (dObj >= dVar)
                                                             res = false;
-                                                        }
-                                                    }
-                                                    break;
+                                                        break;
+                                                    case ">":
+                                                        if (dObj <= dVar)
+                                                            res = false;
+                                                        break;
+                                                    case ">=":
+                                                        if (dObj < dVar)
+                                                            res = false;
+                                                        break;
+                                                    case "<=":
+                                                        if (dObj > dVar)
+                                                            res = false;
+                                                        break;
+                                                    default:
+                                                        res = false;
+                                                        break;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (objectVal.ToUpper() == varVal.ToUpper())
+                                                {
+                                                    res = false;
+                                                }
                                             }
                                         }
                                 }

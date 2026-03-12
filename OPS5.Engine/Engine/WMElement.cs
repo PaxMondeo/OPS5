@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 
 
@@ -122,7 +121,7 @@ namespace OPS5.Engine
                                 _attributes.Add(attName, "NIL");
                             else
                             {
-                                _attributes.Add(attName, Utilities.Formatting.CheckForDateTime(attribute.Value));
+                                _attributes.Add(attName, attribute.Value);
                             }
                             done = true;
                             break;
@@ -176,18 +175,7 @@ namespace OPS5.Engine
                                     _attributes.Add(attributeName, "NIL");
                                 else
                                 {
-                                    string dataType = _WMClasses.GetClass(_className).GetAttributeType(attributeName);
-                                    switch (dataType)
-                                    {
-                                        case "DATE":
-                                        case "DATETIME":
-                                            _attributes.Add(attributeName, Utilities.Formatting.CheckForDateTime(value));
-                                            break;
-
-                                        default:
-                                            _attributes.Add(attributeName, value);
-                                            break;
-                                    }
+                                    _attributes.Add(attributeName, value);
                                 }
                                 done = true;
                                 break;
@@ -242,32 +230,9 @@ namespace OPS5.Engine
         public string? GetAttributeValue(string attribute)
         {
             if (_attributes.ContainsKey(attribute))
-            {
-                string? val = _attributes.GetVal(attribute);
-                string dataType = _WMClasses.GetClass(_className).GetAttributeType(attribute);
-                switch (dataType)
-                {
-                    case "DATE":
-                    case "DATETIME":
-                        return Utilities.Formatting.CheckForDateTime(val);
-
-                    default:
-                        return val;
-                }
-            }
+                return _attributes.GetVal(attribute);
             else
                 return "";
-        }
-
-        public List<string?> GetAttributeValues()
-        {
-            return _attributes.GetValues();
-        }
-
-        public List<string?> GetUserAttributeValues()
-        {
-            AttributesCollection filteredAttributes = _attributes.WhereKeyNotEquals("ID");
-            return filteredAttributes.GetValues();
         }
 
         public void SetAttributeValue(string attribute, string value)
@@ -285,14 +250,5 @@ namespace OPS5.Engine
             return true;
         }
 
-        public string GetAttributeType(string attributeName)
-        {
-            return _WMClasses.GetClass(_className).GetAttributeType(attributeName);
-        }
-
-        public bool HasAttribute(string attributeName)
-        {
-            return _attributes.ContainsKey(attributeName);
-        }
     }
 }

@@ -19,8 +19,6 @@ class Program
         var config = provider.GetRequiredService<IConfig>();
         string platform = Environment.OSVersion.Platform == PlatformID.Win32NT ? "Windows" : "Linux";
         config.ReadSettings(platform);
-        config.Ops5 = true;
-
         var fileProcessing = provider.GetRequiredService<IFileProcessing>();
         var engine = provider.GetRequiredService<IEngine>();
 
@@ -48,7 +46,7 @@ class Program
             bool exit = false;
             while (!exit)
             {
-                exit = await engine.RunEngine(false);
+                exit = await engine.RunEngine();
             }
         }
     }

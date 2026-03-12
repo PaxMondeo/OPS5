@@ -20,22 +20,9 @@ namespace OPS5.Engine.Calculators
         }
 
 
-        public void SetDefault(string calcType)
-        {
-            if (_calculators.ContainsKey(calcType))
-            {
-                _default = calcType;
-            }
-        }
-
         public ICalculator Default()
         {
             return _calculators[_default];
-        }
-
-        public ICalculator GetCalculator(string calcType)
-        {
-            return _calculators[calcType];
         }
     }
 
