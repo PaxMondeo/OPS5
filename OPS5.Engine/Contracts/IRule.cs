@@ -19,7 +19,6 @@ namespace OPS5.Engine.Contracts
         List<IRHSAction> RHS { get; }
         string Comment { get; set; }
         bool Enabled { get; set; }
-        bool IsFindPath { get; set; }
         int ObjectCount { get; set; }
         bool PNodeHasTokens();
         List<IToken> PNodeTokens();

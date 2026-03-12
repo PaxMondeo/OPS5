@@ -20,7 +20,6 @@ namespace OPS5.Engine.Commands
         private IBetaMemory _betaMemory;
         private IRules _rules;
         private IWMClasses _WMClasses;
-        private IClassRelationships _classRelationships;
         private IOPS5Settings _settings;
 
         private string _lastRuleFired = "";
@@ -34,7 +33,6 @@ namespace OPS5.Engine.Commands
                             IBetaMemory betaMemory,
                             IRules rules,
                             IWMClasses WMClasses,
-                            IClassRelationships classRelationships,
                             ICalculators calculators,
                             IOPS5Settings settings)
         {
@@ -45,7 +43,6 @@ namespace OPS5.Engine.Commands
             _workingMemory = workingMemory;
             _rules = rules;
             _WMClasses = WMClasses;
-            _classRelationships = classRelationships;
             _logger = logger;
             _calculators = calculators;
             _settings = settings;
@@ -65,7 +62,6 @@ namespace OPS5.Engine.Commands
             Console.WriteLine("LAST\t\t\tDescribes the last rule fired.");
             Console.WriteLine("LOAD <filename>\t\tLoads the requested file.");
             Console.WriteLine("MAKE class (attribute1 val1, attribute2 val2, . . .)\n\t\t\tMakes an object.");
-            Console.WriteLine("RELATIONSHIPS\t\tLists the Class hierarchy.");
             Console.WriteLine("REMOVE n\t\tRemoves the object with ID n.");
             Console.WriteLine("RESET\t\t\tResets OPS5 and restarts.");
             Console.WriteLine("RETE\t\t\tDumps the contents of memory.");
@@ -81,11 +77,6 @@ namespace OPS5.Engine.Commands
 
 
         public async Task<ConsoleResult> RunConsole()
-        {
-            return await RunConsole(true);
-        }
-
-        private async Task<ConsoleResult> RunConsole(bool isInternal)
         {
             ConsoleResult result = ConsoleResult.OK;
             try
@@ -166,10 +157,6 @@ namespace OPS5.Engine.Commands
 
                             case "CLASSES":
                                 _WMClasses.PrintClasses();
-                                break;
-
-                            case "RELATIONSHIPS":
-                                _classRelationships.PrintRelationships();
                                 break;
 
                             case "RUN":

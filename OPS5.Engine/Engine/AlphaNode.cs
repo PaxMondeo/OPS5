@@ -193,13 +193,6 @@ namespace OPS5.Engine
                 {
                     _value.ToUpper()
                 };
-                if (_WMClasses.IsBaseClass(_value))
-                {
-                    foreach (KeyValuePair<string, IWMClass> pair in _WMClasses.GetClassesBasedOn(_value))
-                    {
-                        Classes.Add(pair.Key);
-                    }
-                }
             }
             else
             {

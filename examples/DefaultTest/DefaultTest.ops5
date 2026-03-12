@@ -1,0 +1,34 @@
+; DefaultTest - Default attribute values
+; Demonstrates: (default) sets fallback values for omitted attributes in (make)
+
+; === Class definitions ===
+(literalize block name color size)
+(literalize control step)
+
+; === Default values ===
+(default block ^color red ^size 10)
+
+; === Initial data ===
+; Make a block without specifying color or size — defaults should apply
+(make block ^name A)
+; Make a block with explicit color — only size should default
+(make block ^name B ^color blue)
+(make control ^step check)
+
+; === Production rules ===
+
+; Verify block A has default color and size
+(p check-defaults
+    (control ^step check)
+    (block ^name A ^color <c> ^size <s>)
+    -->
+    (write |A color=| <c> | size=| <s>)
+    (modify 1 ^step check-b))
+
+; Verify block B has explicit color but default size
+(p check-explicit
+    (control ^step check-b)
+    (block ^name B ^color <c> ^size <s>)
+    -->
+    (write |B color=| <c> | size=| <s>)
+    (modify 1 ^step done))

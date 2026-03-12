@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +8,6 @@ using System.Text;
 using OPS5.Engine.Contracts;
 using OPS5.Engine.Models;
 using AttributeLibrary;
-using System.Text.RegularExpressions;
 
 namespace OPS5.Engine
 {
@@ -47,7 +46,6 @@ namespace OPS5.Engine
     {
         private IOPS5Logger _logger;
         private IWMClasses _WMClasses;
-        private IClassRelationships _classRelationships;
 
         /// <summary>
         /// Unique Integer ID of the Object
@@ -73,25 +71,24 @@ namespace OPS5.Engine
         /// <summary>
         /// List of Tokens that currently contain this Object
         /// </summary>
-        private List<int> _tokens; 
+        private List<int> _tokens;
         /// <summary>
         /// The system Time Tag when this Object was created
         /// </summary>
         public int TimeTag { get; set; }
 
-        public WMElement(IOPS5Logger logger, IWMClasses WMClasses, IClassRelationships classRelationships)
+        public WMElement(IOPS5Logger logger, IWMClasses WMClasses)
         {
             _logger = logger;
             _WMClasses = WMClasses;
             _attributes = new AttributesCollection();
             _alphaNodes = new List<int>();
             _tokens = new List<int>();
-            _classRelationships = classRelationships;
         }
 
         public void ProcessAttributes(AttributesCollection attributes)
         {
-            try 
+            try
             {
                 if (_className == null)
                     throw new Exception("Need to set class name before processing elements");
@@ -132,7 +129,8 @@ namespace OPS5.Engine
                         }
                         if (!done)
                         {
-                            _attributes.Add(classAtt.ToUpper(), "NIL");
+                            string? defaultVal = _WMClasses.GetClass(_className).GetDefaultValue(classAtt.ToUpper());
+                            _attributes.Add(classAtt.ToUpper(), defaultVal ?? "NIL");
                         }
                     }
                 }
@@ -197,7 +195,8 @@ namespace OPS5.Engine
                         }
                         if (!done)
                         {
-                            _attributes.Add(classAtt.ToUpper(), "NIL");
+                            string? defaultVal = _WMClasses.GetClass(_className).GetDefaultValue(classAtt.ToUpper());
+                            _attributes.Add(classAtt.ToUpper(), defaultVal ?? "NIL");
                         }
                     }
                 }
@@ -237,13 +236,7 @@ namespace OPS5.Engine
         public AttributesCollection GetUserAttributes()
         {
             //Return a fresh dictionary with copies of the attributes, not the original, to avoid it getting trashed.
-            string? parentClass = _classRelationships.GetParent(_className);
-            if(parentClass == null)
-            {
-                return new AttributesCollection(_attributes.WhereKeyNotEquals("ID"));
-            }
-            else
-                return new AttributesCollection(_attributes.WhereKeyNotEquals("ID").WhereKeyNotEquals($"{parentClass}ID"));
+            return new AttributesCollection(_attributes.WhereKeyNotEquals("ID"));
         }
 
         public string? GetAttributeValue(string attribute)
@@ -273,13 +266,7 @@ namespace OPS5.Engine
 
         public List<string?> GetUserAttributeValues()
         {
-            AttributesCollection filteredAttributes;
-            //Return a fresh dictionary with copies of the attributes, not the original, to avoid it getting trashed.
-            string? parentClass = _classRelationships.GetParent(_className);
-            if (parentClass == null)
-                filteredAttributes = _attributes.WhereKeyNotEquals("ID");
-            else
-                filteredAttributes = _attributes.WhereKeyNotEquals("ID").WhereKeyNotEquals($"{parentClass}ID");
+            AttributesCollection filteredAttributes = _attributes.WhereKeyNotEquals("ID");
             return filteredAttributes.GetValues();
         }
 
@@ -303,33 +290,9 @@ namespace OPS5.Engine
             return _WMClasses.GetClass(_className).GetAttributeType(attributeName);
         }
 
-        public bool IsPersistent()
-        {
-            return _WMClasses.GetClass(ClassName).IsPersistent;
-        }
-
-        public bool PersistIndividualObjects()
-        {
-            return _WMClasses.GetClass(ClassName).PersistIndividualObjects;
-        }
-
         public bool HasAttribute(string attributeName)
         {
             return _attributes.ContainsKey(attributeName);
-        }
-
-        public bool HasChildClass(string attributeName)
-        {
-            var item = _attributes.Where(k => k.Key.ToUpper().StartsWith(attributeName.ToUpper())).FirstOrDefault();
-            if (item.Key == null)
-                return false;
-            else
-            {
-                var child = item.Key;
-                Match match = Regex.Match(child, "(?<=\\[).+?(?=\\])");
-                return match.Success;
-            }
-
         }
     }
 }

@@ -26,7 +26,6 @@ namespace OPS5.Engine.Tests.Parsers.OPS5
             var cls = result.Classes.Classes[0];
             cls.ClassName.Should().Be("block");
             cls.Atoms.Should().BeEquivalentTo(new[] { "name", "color", "size" });
-            cls.IsBase.Should().BeTrue();
         }
 
         [Fact]
@@ -419,7 +418,7 @@ namespace OPS5.Engine.Tests.Parsers.OPS5
             var result = Parse(
                 "(p my-rule (block ^name A) --> (call myprog arg1 arg2))");
             var action = result.Rules.Rules[0].Actions[0];
-            action.Command.Should().Be("EXECUTE");
+            action.Command.Should().Be("CALL");
             action.Atoms.Should().Contain("myprog");
         }
 
@@ -479,6 +478,57 @@ namespace OPS5.Engine.Tests.Parsers.OPS5
             result.Data.Actions.Should().HaveCount(1);
         }
 
+        // ==================== Default ====================
+
+        [Fact]
+        public void Parse_Default_CreatesDefaultModel()
+        {
+            var result = Parse("(default block ^color red ^size 10)");
+            result.Defaults.Should().HaveCount(1);
+            var def = result.Defaults[0];
+            def.ClassName.Should().Be("block");
+            def.Defaults.Should().ContainKey("color").WhoseValue.Should().Be("red");
+            def.Defaults.Should().ContainKey("size").WhoseValue.Should().Be("10");
+        }
+
+        [Fact]
+        public void Parse_Default_MultipleDefaults()
+        {
+            var result = Parse(
+                "(default block ^color red)\n" +
+                "(default goal ^status pending)");
+            result.Defaults.Should().HaveCount(2);
+        }
+
+        // ==================== Vector-Attribute ====================
+
+        [Fact]
+        public void Parse_VectorAttribute_CreatesModel()
+        {
+            var result = Parse("(vector-attribute block items parts)");
+            result.VectorAttributes.Should().HaveCount(1);
+            var va = result.VectorAttributes[0];
+            va.ClassName.Should().Be("block");
+            va.Attributes.Should().BeEquivalentTo(new[] { "items", "parts" });
+        }
+
+        // ==================== RHS CBind ====================
+
+        [Fact]
+        public void Parse_CBind_CreatesActionModel()
+        {
+            var result = Parse(
+                "(p my-rule (block ^name A) -->\n" +
+                "  (make result ^op add)\n" +
+                "  (cbind <new>))");
+            var rule = result.Rules.Rules[0];
+            rule.Actions.Should().HaveCount(2);
+            var cbindAction = rule.Actions[1];
+            cbindAction.Command.Should().Be("CBIND");
+            cbindAction.Atoms[0].Should().Be("CBIND");
+            cbindAction.Atoms[1].Should().Be("<NEW.MY-RULE>");
+        }
+
         // ==================== Error Handling ====================
 
         [Fact]
@@ -487,15 +537,6 @@ namespace OPS5.Engine.Tests.Parsers.OPS5
             var result = Parse("(unknown-form arg1 arg2)");
             _logger.Received().WriteError(
                 Arg.Is<string>(s => s.Contains("Unknown top-level form")),
-                Arg.Any<string>());
-        }
-
-        [Fact]
-        public void Parse_UnsupportedAction_LogsError()
-        {
-            Parse("(p my-rule (block ^name A) --> (cbind <x>))");
-            _logger.Received().WriteError(
-                Arg.Is<string>(s => s.Contains("Unsupported")),
                 Arg.Any<string>());
         }
 

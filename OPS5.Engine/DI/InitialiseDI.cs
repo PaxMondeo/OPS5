@@ -22,14 +22,11 @@ namespace OPS5.Engine.DI
             services.AddSingleton<IBetaMemory, BetaMemory>();
             services.AddSingleton<IObjectIDs, ObjectIDs>();
             services.AddSingleton<IRules, Rules>();
-            services.AddSingleton<IClassRelationships, ClassRelationships>();
             services.AddSingleton<ICalculators, OPS5Calculators>();
             services.AddSingleton<IOPS5Settings, OPS5Settings>();
-            services.AddSingleton<IExecuteBindingRegistry, ExecuteBindingRegistry>();
 
             // Transient types
             services.AddTransient<ICalculator, RPN>();
-            services.AddTransient<ICalculator, LegacyCalculator>();
             services.AddTransient<IWMElementFactory, WMElementFactory>();
             services.AddTransient<IBetaNodeFactory, BetaNodeFactory>();
             services.AddTransient<IWMClassFactory, WMClassFactory>();

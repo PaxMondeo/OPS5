@@ -62,10 +62,9 @@ namespace OPS5.Engine
         /// <param name="newTests"></param>
         /// <param name="ruleBindings"></param>
         /// <param name="negative"></param>
-        /// <param name="isFindPath"></param>
-        /// <param name="findPath"></param>
+        /// <param name="isAny"></param>
         /// <returns></returns>
-        public IBetaNode BuildShareBeta(IBetaNode betaParent, IAlphaNode alphaParent, List<ConditionTest> newTests, Dictionary<string, Binding> ruleBindings, bool negative, bool isAny, bool isFindPath, IFindPathInfo? findPath)
+        public IBetaNode BuildShareBeta(IBetaNode betaParent, IAlphaNode alphaParent, List<ConditionTest> newTests, Dictionary<string, Binding> ruleBindings, bool negative, bool isAny)
         {
             IBetaNode betaNode = default!;
             Dictionary<string, Binding> newBindings = new Dictionary<string, Binding>(StringComparer.OrdinalIgnoreCase);
@@ -74,7 +73,7 @@ namespace OPS5.Engine
 
             foreach (IBetaNode child in betaParent.BetaChildren)
             {
-                if (child.AlphaParent.ID == alphaParent.ID && child.Tests.Count == newTests.Count && child.Negative == negative && child.IsFindPath == isFindPath)
+                if (child.AlphaParent.ID == alphaParent.ID && child.Tests.Count == newTests.Count && child.Negative == negative)
                 {
                     bool share = true;
                     for (int x = 0; x < newTests.Count; x++)
@@ -110,16 +109,12 @@ namespace OPS5.Engine
             if (betaNode == null)
             {
                 betaNode = AddBetaNode();
-                betaNode.SetProperties(betaParent, alphaParent, newTests, newBindings, negative, isAny, isFindPath, findPath);
+                betaNode.SetProperties(betaParent, alphaParent, newTests, newBindings, negative, isAny);
                 if (_logger.Verbosity > 1)
                 {
                     if (negative)
                     {
                         _logger.WriteInfo($"Created Negative Beta node {betaNode.ID}", 2);
-                    }
-                    else if (isFindPath)
-                    {
-                        _logger.WriteInfo($"Created FindPath Beta node {betaNode.ID}", 2);
                     }
                     else
                     {

@@ -1,0 +1,20 @@
+; CBindTest - CBind action test
+; Demonstrates: (cbind <var>) captures the time-tag of the last (make)
+
+; === Class definitions ===
+(literalize control step tag)
+(literalize item name)
+
+; === Initial data ===
+(make control ^step start)
+
+; === Production rules ===
+
+; Create an item and capture its time-tag via cbind
+(p create-and-bind
+    (control ^step start)
+    -->
+    (make item ^name test-item)
+    (cbind <tt>)
+    (write |time-tag=| <tt>)
+    (modify 1 ^step done ^tag <tt>))

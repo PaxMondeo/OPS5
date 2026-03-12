@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,8 +30,8 @@ namespace OPS5.Engine
     internal class WMClass : IWMClass
     {
         private IOPS5Logger _logger;
-        private IClassRelationships _classRelationships;
         private Dictionary<string, string> _attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, string> _defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Name of the Class
@@ -50,15 +50,6 @@ namespace OPS5.Engine
             }
         }
 
-
-        /// <summary>
-        /// Optional parent class that this class inherits from
-        /// </summary>
-        public string BasedOn { get; set; } = "";
-        /// <summary>
-        /// True if this is a Base Class
-        /// </summary>
-        public bool IsBaseClass { get; set; } = false;
         /// <summary>
         /// Author's comment describing the Class
         /// </summary>
@@ -69,17 +60,11 @@ namespace OPS5.Engine
         public bool Enabled { get; set; } = true;
         public string ClassFile { get; set; } = string.Empty;
 
-        public bool ReadOnly { get; set; } = false;
-        public bool IsPersistent { get; set; } = false;
-        public bool PersistIndividualObjects { get; set; } = false;
-
         private int _objectCount = 0;
 
-        public WMClass(IOPS5Logger logger,
-                          IClassRelationships classRelationships)
+        public WMClass(IOPS5Logger logger)
         {
             _logger = logger;
-            _classRelationships = classRelationships;
             _attributes.Add("ID","NUMBER");
         }
 
@@ -90,11 +75,6 @@ namespace OPS5.Engine
         }
 
         public void AddAttributes(List<string> attributes)
-        {
-            AddAttributes(attributes, true);
-        }
-
-        private void AddAttributes(List<string> attributes, bool isInternal)
         {
             foreach (string attribute in attributes)
             {
@@ -162,10 +142,6 @@ namespace OPS5.Engine
 
         public bool AttributeExists(string attributeName)
         {
-            return AttributeExists(attributeName, true);
-        }
-        private bool AttributeExists(string attributeName, bool isInternal)
-        {
             attributeName = attributeName.ToUpper();
             if (attributeName == "ID" || attributeName == "CLASS")
                 return true;
@@ -174,21 +150,11 @@ namespace OPS5.Engine
 
         public string NextObjectID()
         {
-            return NextObjectID(true);
-        }
-
-        private string NextObjectID(bool isInternal)
-        {
             _objectCount++;
             return _objectCount.ToString();
         }
 
         public void TrySetObjectCount(int id)
-        {
-            TrySetObjectCount(id, true);
-        }
-
-        private void TrySetObjectCount(int id, bool isInternal)
         {
             if (id > _objectCount)
                 _objectCount = id;
@@ -196,62 +162,15 @@ namespace OPS5.Engine
 
         public List<string> GetUserAttributes()
         {
-            return GetUserAttributes(true);
-        }
-
-        private List<string> GetUserAttributes(bool isInternal)
-        {
             return _attributes.Keys.Where(_ => _ != "ID").ToList();
         }
 
         public List<string> GetAttributes()
         {
-            return GetAttributes(true);
-        }
-
-        private List<string> GetAttributes(bool isInternal)
-        {
             return _attributes.Keys.ToList();
         }
 
-        public bool HasClassAttribute(string attributeName)
-        {
-            return HasClassAttribute(attributeName, true);
-        }
-
-        private bool HasClassAttribute(string attributeName, bool isInternal)
-        {
-            bool has = _classRelationships.HasChild(ClassName, attributeName);
-            return has;
-        }
-
-        public string? GetSubClass(string attributeName)
-        {
-            return GetSubClass(attributeName, true);
-        }
-
-        private string? GetSubClass(string attributeName, bool isInternal)
-        {
-            return _classRelationships.GetChildClass(ClassName, attributeName);
-        }
-
-        public bool HasComplexAttribute(string attributePrefix)
-        {
-            return HasComplexAttribute(attributePrefix, true);
-        }
-
-        private bool HasComplexAttribute(string attributePrefix, bool isInternal)
-        {
-            bool any = _attributes.Keys.Where(_ => _.StartsWith(attributePrefix.ToUpper() + ".")).Any();
-            return any;
-        }
-
         public string GetAttributeType(string attributeName)
-        {
-            return GetAttributeType(attributeName, true);
-        }
-
-        private string GetAttributeType(string attributeName, bool isInternal)
         {
             if (_attributes.ContainsKey(attributeName))
                 return _attributes[attributeName];
@@ -259,6 +178,26 @@ namespace OPS5.Engine
             {
                 return ""; //Default is to just return the raw value if this function can't identify a type.
             }
+        }
+
+        public void SetDefaults(Dictionary<string, string> defaults)
+        {
+            foreach (var kvp in defaults)
+                _defaults[kvp.Key.ToUpper()] = kvp.Value;
+        }
+
+        public string? GetDefaultValue(string attributeName)
+        {
+            if (_defaults.TryGetValue(attributeName.ToUpper(), out string? value))
+                return value;
+            return null;
+        }
+
+        public void SetAttributeType(string attributeName, string dataType)
+        {
+            string key = attributeName.ToUpper();
+            if (_attributes.ContainsKey(key))
+                _attributes[key] = dataType;
         }
     }
 

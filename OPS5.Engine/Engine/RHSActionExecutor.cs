@@ -21,11 +21,11 @@ namespace OPS5.Engine
         private readonly IConfig _config;
         private readonly IBetaMemory _betaMemory;
         private readonly IFileHandleManager _fileHandleManager;
-        private readonly IExecuteBindingRegistry _executeBindingRegistry;
         private readonly IObjectIDs _objectIDs;
 
         private char[] _trimChars { get; } = new char[] { ' ', '\t', '\n' };
         private string _writeOut = "";
+        private int _lastMadeTimeTag = -1;
 
         public bool HaltRequested { get; private set; }
         public string HaltingRule { get; private set; } = string.Empty;
@@ -38,7 +38,6 @@ namespace OPS5.Engine
             IWMClasses WMClasses,
             IConfig config,
             IBetaMemory betaMemory,
-            IExecuteBindingRegistry executeBindingRegistry,
             IFileHandleManager fileHandleManager,
             IObjectIDs objectIDs)
         {
@@ -49,7 +48,6 @@ namespace OPS5.Engine
             _WMClasses = WMClasses;
             _config = config;
             _betaMemory = betaMemory;
-            _executeBindingRegistry = executeBindingRegistry;
             _fileHandleManager = fileHandleManager;
             _objectIDs = objectIDs;
         }
@@ -62,6 +60,7 @@ namespace OPS5.Engine
 
         public async Task ExecuteActions(IRule rule, IToken token)
         {
+            _lastMadeTimeTag = -1;
             try
             {
                 foreach (IRHSAction action in rule.RHS)
@@ -119,11 +118,6 @@ namespace OPS5.Engine
                                 doing = false;
                                 break;
 
-                            case "EXECUTE":
-                                DoExecute(actionItems, thisToken, prod);
-                                doing = false;
-                                break;
-
                             case "SET":
                                 DoSet(actionItems, thisToken, prod);
                                 doing = false;
@@ -146,6 +140,16 @@ namespace OPS5.Engine
 
                             case "ACCEPTLINE":
                                 DoAccept(actionItems, thisToken, prod, singleToken: false);
+                                doing = false;
+                                break;
+
+                            case "CBIND":
+                                DoCBind(actionItems, thisToken, prod);
+                                doing = false;
+                                break;
+
+                            case "CALL":
+                                DoCall(actionItems, thisToken, prod);
                                 doing = false;
                                 break;
 
@@ -392,6 +396,75 @@ namespace OPS5.Engine
             _fileHandleManager.CloseFile(logicalName);
         }
 
+        private void DoCall(List<object> actions, IToken thisToken, IRule prod)
+        {
+            if (actions.Count < 2 || actions[1] is not string progName)
+            {
+                _logger.WriteError($"Syntax error in Call action in rule {prod.Name}: program name required", "RHSActionExecutor");
+                return;
+            }
+
+            string resolvedName = thisToken.TryGetVariableValue(progName);
+            string arguments = "";
+            for (int i = 2; i < actions.Count; i++)
+            {
+                if (actions[i] is string arg)
+                {
+                    string resolved = thisToken.TryGetVariableValue(arg);
+                    if (arguments.Length > 0) arguments += " ";
+                    arguments += resolved;
+                }
+            }
+
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo(resolvedName, arguments)
+                {
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+                using var process = System.Diagnostics.Process.Start(psi);
+                if (process != null)
+                {
+                    string output = process.StandardOutput.ReadToEnd();
+                    process.WaitForExit();
+                    if (!string.IsNullOrEmpty(output))
+                        _logger.WriteOutput(output);
+                    if (process.ExitCode != 0)
+                    {
+                        string error = process.StandardError.ReadToEnd();
+                        _logger.WriteError($"Call to {resolvedName} exited with code {process.ExitCode}: {error}", "RHSActionExecutor");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.WriteError($"Call to {resolvedName} failed: {ex.Message}", "RHSActionExecutor");
+            }
+        }
+
+        private void DoCBind(List<object> actions, IToken thisToken, IRule prod)
+        {
+            if (actions.Count < 2 || actions[1] is not string varName)
+            {
+                _logger.WriteError(
+                    $"Syntax error in CBind action in rule {prod.Name}: variable required",
+                    "RHSActionExecutor");
+                return;
+            }
+
+            if (_lastMadeTimeTag < 0)
+            {
+                _logger.WriteError(
+                    $"CBind in rule {prod.Name}: no preceding Make action",
+                    "RHSActionExecutor");
+                return;
+            }
+
+            thisToken.UpdateVariable(varName, _lastMadeTimeTag.ToString());
+        }
+
         /// <summary>
         /// Scans action atoms for a "TO" keyword and returns its index, or -1 if not found.
         /// Used to detect file-targeted Write actions: Write (...) To output;
@@ -504,51 +577,7 @@ namespace OPS5.Engine
 
         private void DoMake(List<object> actions, IToken thisToken, IRule prod)
         {
-            if (_betaMemory.GetBetaNode(thisToken.Owner).IsFindPath)
-            {
-                // Create a new object for each step in the path
-                IFindPathInfo fpi = _betaMemory.GetBetaNode(thisToken.Owner).FindPath;
-                int index = 1;
-                for (int x = fpi.FirstObject; x < thisToken.ObjectCount(); x++)
-                {
-                    IWMElement iObject = _workingMemory.GetWME(thisToken.ObjectIDs[x]);
-                    var fromVal = iObject.AttributeValue(fpi.FromAttr);
-                    var toVal = iObject.AttributeValue(fpi.ToAttr);
-                    string distVal = "";
-                    if (fpi.DistAttr != "")
-                    {
-                        var v = iObject.AttributeValue(fpi.DistAttr);
-                        if (v is string)
-                            distVal = v;
-                    }
-
-                    List<object> acts = new List<object>();
-                    for (int y = 0; y < actions.Count; y++)
-                    {
-                        if (actions[y] == null)
-                            _logger.WriteError("Error executing Make command for FindPath", "Engine");
-                        else
-                        {
-                            if (actions[y] is string act && fromVal is string && toVal is string)
-                            {
-                                if (act.ToUpper() == fpi.FromVar)
-                                    acts.Add(fromVal);
-                                else if (act.ToUpper() == fpi.ToVar)
-                                    acts.Add(toVal);
-                                else if (act.ToUpper() == fpi.DistVar)
-                                    acts.Add(distVal);
-                                else
-                                    acts.Add(act);
-                            }
-                        }
-                    }
-                    Make(acts, thisToken, prod);
-                    index++;
-                }
-            }
-            else
-                Make(actions, thisToken, prod); //NOT FindPath
-
+            Make(actions, thisToken, prod);
         }
 
         private void Make(List<object> actions, IToken thisToken, IRule prod)
@@ -680,7 +709,9 @@ namespace OPS5.Engine
                     }
                 }
                 string[] attributes = elements.ToArray();
-                _workingMemory.AddObject(className, attributes);
+                var newWme = _workingMemory.AddObject(className, attributes);
+                if (newWme != null)
+                    _lastMadeTimeTag = newWme.TimeTag;
             }
         }
 
@@ -792,46 +823,6 @@ namespace OPS5.Engine
                 {
                     charCount += WriteAction((List<object>)actions[y], thisToken, charCount);
                 }
-            }
-        }
-
-        private void DoExecute(List<object> actions, IToken thisToken, IRule prod)
-        {
-            string bindingName = "";
-            if (actions.Count < 2)
-            {
-                _logger.WriteError("Invalid EXECUTE statement, incorrect number of arguments", "DoActions");
-            }
-            else
-            {
-                if (actions[1] is string act1)
-                {
-                    bindingName = act1.ToUpper();
-                    var binding = _executeBindingRegistry.Get(bindingName);
-                    if (binding != null)
-                    {
-                        if (actions.Count == 2)
-                            binding.Execute("");
-                        else
-                        {
-                            string arguments = "";
-                            for (int i = 2; i < actions.Count; i++)
-                            {
-                                if (actions[i] is string arg)
-                                {
-                                    if (arg.StartsWith("<"))
-                                        arg = thisToken.TryGetVariableValue(arg);
-                                    arguments += arg + " ";
-                                }
-                            }
-                            binding.Execute(arguments);
-                        }
-                    }
-                    else
-                        _logger.WriteError($"ERROR - Execute Binding {bindingName} not found", "DoActions");
-                }
-                else
-                    _logger.WriteError($"ERROR - Execute Binding {bindingName} not found", "DoActions");
             }
         }
 

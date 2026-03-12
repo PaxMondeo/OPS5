@@ -14,15 +14,9 @@ namespace OPS5.Engine.Models
     public class ClassModel : FileModelBase
     {
         public string ClassName {get;set;} = string.Empty;
-        public bool IsBase { get; set; }
-        public string BaseClass { get; set; } = string.Empty;
-        public List<string> InheritedAtts { get; set; } = new List<string>();
         public bool Disabled { get; set; } = false;
         public string Comment { get; set; } = "";
         public List<string> Atoms { get; set; } = new List<string>();
-        public bool IsPersistent { get; set; } = false;
-        public bool PersistIndividualObjects { get; set; } = false;
-
         public ClassModel(string line) : base(line)
         {
 
@@ -56,19 +50,20 @@ namespace OPS5.Engine.Models
                 Atoms.RemoveAt(0);
             }
             IsValid = true;
-            if (Atoms.Contains("PERSISTENT", StringComparer.OrdinalIgnoreCase))
-            {
-                IsPersistent = true;
-                Atoms.RemoveAll(p => p.ToUpper() == "PERSISTENT");
-            }
-            if (Atoms.Contains("PERSISTOBJECT", StringComparer.OrdinalIgnoreCase))
-            {
-                IsPersistent = true;
-                PersistIndividualObjects = true;
-                Atoms.RemoveAll(p => p.ToUpper() == "PERSISTOBJECT");
-            }
         }
 
 
+    }
+
+    public class DefaultModel
+    {
+        public string ClassName { get; set; } = string.Empty;
+        public Dictionary<string, string> Defaults { get; set; } = new();
+    }
+
+    public class VectorAttributeModel
+    {
+        public string ClassName { get; set; } = string.Empty;
+        public List<string> Attributes { get; set; } = new();
     }
 }

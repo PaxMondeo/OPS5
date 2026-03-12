@@ -1,4 +1,4 @@
-﻿using OPS5.Engine.Contracts;
+using OPS5.Engine.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -49,28 +49,6 @@ namespace OPS5.Engine
             }
         }
 
-        public IWMClass Add(string className, string basedOn)
-        {
-            if (_WMClasses.ContainsKey(className))
-            {
-                throw new Exception($"Class {className} already exists");
-            }
-            else
-            {
-                IWMClass newClass = _WMClassFactory.NewClass(className);
-                _WMClasses.Add(className, newClass);
-                newClass.BasedOn = basedOn.ToUpper();
-                newClass.IsBaseClass = false;
-                newClass.ReadOnly = false;
-
-                foreach (string attribute in _WMClasses[basedOn].GetUserAttributes())
-                {
-                    newClass.AddAttribute(attribute);
-                }
-                return newClass;
-            }
-        }
-
         public IWMClass Add(string className, List<string> attributes)
         {
             if (_WMClasses.ContainsKey(className))
@@ -102,22 +80,10 @@ namespace OPS5.Engine
             return _WMClasses.Values.ToList();
         }
 
-        public Dictionary<string, IWMClass> GetClassesBasedOn(string className)
-        {
-            return _WMClasses.Where(c => c.Value.BasedOn == className).ToDictionary(c => c.Key, c => c.Value);
-        }
-
         public void Delete(string className)
         {
-            //Check to make sure no other class is inheriting from this class
-
             try
             {
-                foreach (IWMClass iClass in _WMClasses.Values)
-                    if (iClass.BasedOn == className)
-                        _logger.WriteInfo($"Class {className} is the parent of {iClass.ClassName} - please review before reloading data", 0);
-
-                // TODO: Check database adapters and CSV bindings that reference this class
                 _WMClasses.Remove(className);
                 _logger.WriteInfo($"Deleted class {className}", 0);
             }
@@ -125,23 +91,6 @@ namespace OPS5.Engine
             {
                 _logger.WriteError(ex.Message, "Delete");
             }
-
-            _WMClasses.Remove(className);
-        }
-
-        public bool IsBaseClass(string className)
-        {
-            return _WMClasses[className].IsBaseClass;
-        }
-
-        public bool IsPersistentClass(string className)
-        {
-            return _WMClasses[className].IsPersistent && !_WMClasses[className].PersistIndividualObjects;
-        }
-
-        public bool IsIndividuallyPersistentClass(string className)
-        {
-            return _WMClasses[className].PersistIndividualObjects;
         }
 
         public void PrintClasses()
@@ -164,11 +113,6 @@ namespace OPS5.Engine
         public List<IWMClass> GetEnabledClasses()
         {
             return _WMClasses.Values.Where(_ => _.Enabled == true).ToList();
-        }
-
-        public List<IWMClass> GetPersistentClasses()
-        {
-            return _WMClasses.Values.Where(_ => _.IsPersistent == true).ToList();
         }
 
         public List<string> ListClassNames()

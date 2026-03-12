@@ -169,10 +169,6 @@ namespace OPS5.Engine
         /// <param name="maxSteps"></param>
         public async Task Run(int maxSteps)
         {
-            await Run(maxSteps, true);
-        }
-        private async Task Run(int maxSteps, bool isInternal)
-        {
             if(_logger.ErrorCount > 0)
             {
                 _logger.WriteInfo($"Please execute ClearErrors to continue", 0);

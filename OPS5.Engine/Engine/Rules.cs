@@ -70,7 +70,6 @@ namespace OPS5.Engine
 
             IRule rule = AddRule(ruleModel.RuleName, ruleModel.FileName);
             rule.Enabled = ruleModel.Enabled;
-            rule.IsFindPath = ruleModel.IsFindPath;
             return rule;
         }
 
