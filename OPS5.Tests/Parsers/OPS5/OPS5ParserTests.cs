@@ -308,7 +308,7 @@ namespace OPS5.Engine.Tests.Parsers.OPS5
                 "(p my-rule (block ^val <a>) -->\n" +
                 "  (compute <x> (+ (* <a> 2) 3)))");
             var action = result.Rules.Rules[0].Actions[0];
-            // Postfix: <a> 2 * 3 +
+            // Prefix: + * <a> 2 3
             action.Atoms[4].Should().Contain("*");
             action.Atoms[4].Should().Contain("+");
         }

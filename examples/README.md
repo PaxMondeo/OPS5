@@ -31,13 +31,19 @@ dotnet run --project OPS5.Host -- examples/HelloWorld/HelloWorld.ops5
 
 | Example | Description | Features Demonstrated |
 |---------|-------------|----------------------|
-| [StateMachine](StateMachine/) | State transition pattern | Negated conditions, sequential rule firing |
+| [AliasTest](AliasTest/) | Duplicate class conditions | Matching two WMEs of the same class in one rule (auto-aliasing) |
+| [CBindTest](CBindTest/) | Time-tag capture | `cbind` to capture the time-tag of a newly created WME |
+| [CallTest](CallTest/) | External program invocation | `call` to execute a system command |
 | [ComparisonTest](ComparisonTest/) | All comparison operators | `=`, `<>`, `<`, `>`, `<=`, `>=` predicates |
+| [ComputeTest](ComputeTest/) | Nested arithmetic | `compute` with nested prefix expressions |
 | [ConjunctionTest](ConjunctionTest/) | AND predicates | `{ > 10 < 20 }` conjunction on a single attribute |
+| [DefaultTest](DefaultTest/) | Default attribute values | `default` to set fallback values for omitted attributes |
 | [DisjunctionTest](DisjunctionTest/) | OR matching | `<< Red Amber >>` disjunction syntax |
-| [StrategyTest](StrategyTest/) | Conflict resolution | LEX and MEA strategies |
 | [GenatomTest](GenatomTest/) | Unique symbol generation | `genatom` for generating unique identifiers |
+| [StateMachine](StateMachine/) | State transition pattern | Negated conditions, sequential rule firing |
+| [StrategyTest](StrategyTest/) | Conflict resolution | LEX and MEA strategies |
 | [SubstrTest](SubstrTest/) | Substring operations | `substr` with literal positions, variables, and `INF` |
+| [TabToTest](TabToTest/) | Column-aligned output | `tabto` for padded output formatting |
 | [FileIOTest](FileIOTest/) | File I/O operations | `openfile`, `closefile`, `accept`, writing to files |
 
 ## OPS5 Language Quick Reference
