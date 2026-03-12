@@ -19,10 +19,6 @@ namespace OPS5.Engine.Contracts
         AttributesCollection GetAttributes();
         AttributesCollection GetUserAttributes();
         string? GetAttributeValue(string attribute);
-        List<string?> GetAttributeValues();
-        List<string?> GetUserAttributeValues();
         void SetAttributeValue(string attribute, string value);
-        string GetAttributeType(string attributeName);
-        bool HasAttribute(string attributeName);
     }
 }

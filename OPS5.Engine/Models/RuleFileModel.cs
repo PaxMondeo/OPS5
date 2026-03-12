@@ -12,8 +12,6 @@ namespace OPS5.Engine.Models
     {
         public string RuleName { get; set; } = string.Empty;
         public string FileName { get; set; } = string.Empty;
-        public bool Enabled { get; set; } = true;
-        public string Comment { get; set; } = "";
         public List<ConditionModel> Conditions { get; set; } = new List<ConditionModel>();
         public List<ActionModel> Actions { get; set; } = new List<ActionModel>();
         public Dictionary<string, int> ConditionAliases { get; set; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

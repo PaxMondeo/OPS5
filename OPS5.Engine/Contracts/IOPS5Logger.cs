@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -14,8 +14,6 @@ namespace OPS5.Engine.Contracts
         int ErrorCount { get; set; }
         int Verbosity { get; set; }
         void SetVerbosity(int v);
-        //bool IsDaemon { get; set; }
-        //string Platform { get; set; }
         void ClearErrors();
     }
 

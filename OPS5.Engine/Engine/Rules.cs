@@ -17,8 +17,6 @@ namespace OPS5.Engine
         private IRuleFactory _ruleFactory;
         private ISourceFiles _sourceFiles;
 
-        private int _rulesCount = 0;
-
         public Rules(IOPS5Logger logger, IWorkingMemory workingMemory, IRuleFactory ruleFactory, ISourceFiles sourceFiles)
         {
             _logger = logger;
@@ -32,7 +30,6 @@ namespace OPS5.Engine
         public void Reset()
         {
             _rules = new Dictionary<int, IRule>();
-            _rulesCount++;
         }
 
         public IRule AddRule(string name)
@@ -55,21 +52,16 @@ namespace OPS5.Engine
         }
 
         /// <summary>
-        /// Add a Rule to RETE
+        /// Add a Rule to RETE from a parsed RuleModel
         /// </summary>
-        /// <param name="name">Name of Rule</param>
-        /// <param name="enabled">Indicates that the Rule is Enabled for use or Disabled</param>
         /// <returns>Rule</returns>
         public IRule AddRule(RuleModel ruleModel)
         {
             string fu = ruleModel.FileName.ToUpper();
             if (!_sourceFiles.RuleFiles.ContainsKey(fu))
-                _sourceFiles.RuleFiles.Add(fu, new SourceFile(ruleModel.FileName, _sourceFiles.ProjectFile.FilePath, "", "", true, false));
-            else
-                _sourceFiles.RuleFiles[fu].Loaded = true;
+                _sourceFiles.RuleFiles.Add(fu, new SourceFile(ruleModel.FileName, _sourceFiles.ProjectFile.FilePath));
 
             IRule rule = AddRule(ruleModel.RuleName, ruleModel.FileName);
-            rule.Enabled = ruleModel.Enabled;
             return rule;
         }
 
@@ -79,15 +71,15 @@ namespace OPS5.Engine
             return _rules.Values.ToList();
         }
 
-        public List<IRule> GetEnabledRulesWithTokens()
+        public List<IRule> GetRulesWithTokens()
         {
-            return _rules.Values.Where(p => p.Enabled && p.PNodeHasTokens()).ToList();
+            return _rules.Values.Where(p => p.PNodeHasTokens()).ToList();
         }
 
         public void PrintRules(bool full, bool all)
         {
             Console.WriteLine("\n\nRules:");
-            foreach (Rule p in _rules.Values.Where(p => p.Enabled))
+            foreach (Rule p in _rules.Values)
             {
                 if (p.PNode == null) continue;
                 if(all || p.PNode.Tokens.Count > 0)
@@ -123,7 +115,7 @@ namespace OPS5.Engine
         {
             try
             {
-                foreach (Rule p in _rules.Values.Where(p => p.Enabled == true))
+                foreach (Rule p in _rules.Values)
                 {
                     if (p.PNode == null) continue;
                     if (p.PNode.Tokens.Count() > 0)
@@ -153,20 +145,6 @@ namespace OPS5.Engine
             }
         }
 
-        public void DisableRules(string className)
-        {
-            foreach (IRule rule in _rules.Values)
-            {
-                foreach (Condition cond in rule.Conditions)
-                {
-                    if (cond.ClassName == className)
-                    {
-                        rule.Enabled = false;
-                        _logger.WriteInfo($"Rule {rule.Name} refers to class {className} and has been disabled. Please review the rule before re-enabling it.", 0);
-                    }
-                }
-            }
-        }
 
     }
 }

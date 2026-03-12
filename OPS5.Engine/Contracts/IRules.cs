@@ -13,9 +13,8 @@ namespace OPS5.Engine.Contracts
         IRule AddRule(RuleModel ruleModel);
 
         List<IRule> GetRules();
-        List<IRule> GetEnabledRulesWithTokens();
+        List<IRule> GetRulesWithTokens();
         void PrintRules(bool full, bool all);
         void PrintConflictSet();
-        void DisableRules(string className);
     }
 }

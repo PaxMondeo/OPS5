@@ -14,7 +14,6 @@ public class TokenTests
 
     public TokenTests()
     {
-        _config.Ops5.Returns(false);
         _sut = new Token(_logger, _workingMemory, _config);
     }
 
@@ -219,55 +218,6 @@ public class TokenTests
 
         // Target should be unchanged
         target.Variables["A"].Should().Be("original");
-    }
-
-    #endregion
-
-    #region Compare
-
-    [Fact]
-    public void Compare_IdenticalObjectIDs_ReturnsTrue()
-    {
-        SetupWME(1, 100);
-        SetupWME(2, 200);
-        _sut.AddObject(1);
-        _sut.AddObject(2);
-
-        var other = new Token(_logger, _workingMemory, _config);
-        other.AddObject(1);
-        other.AddObject(2);
-
-        _sut.Compare(other).Should().BeTrue();
-    }
-
-    [Fact]
-    public void Compare_DifferentObjectIDs_ReturnsFalse()
-    {
-        SetupWME(1, 100);
-        SetupWME(2, 200);
-        SetupWME(3, 300);
-        _sut.AddObject(1);
-        _sut.AddObject(2);
-
-        var other = new Token(_logger, _workingMemory, _config);
-        other.AddObject(1);
-        other.AddObject(3);
-
-        _sut.Compare(other).Should().BeFalse();
-    }
-
-    [Fact]
-    public void Compare_DifferentCount_ReturnsFalse()
-    {
-        SetupWME(1, 100);
-        SetupWME(2, 200);
-        _sut.AddObject(1);
-        _sut.AddObject(2);
-
-        var other = new Token(_logger, _workingMemory, _config);
-        other.AddObject(1);
-
-        _sut.Compare(other).Should().BeFalse();
     }
 
     #endregion

@@ -14,8 +14,6 @@ namespace OPS5.Engine.Models
     public class ClassModel : FileModelBase
     {
         public string ClassName {get;set;} = string.Empty;
-        public bool Disabled { get; set; } = false;
-        public string Comment { get; set; } = "";
         public List<string> Atoms { get; set; } = new List<string>();
         public ClassModel(string line) : base(line)
         {
@@ -38,17 +36,6 @@ namespace OPS5.Engine.Models
                 Atoms[x] = atom;
             }
 
-            if (Atoms[0].ToUpper() == "DISABLED")
-            {
-                Disabled = true;
-                Atoms.RemoveAt(0);
-            }
-            if (Atoms[0].ToUpper().StartsWith("COMMENT"))
-            {
-                Comment = Atoms[0].Substring(9);
-                Comment = Comment.Substring(0, Comment.Length - 1);
-                Atoms.RemoveAt(0);
-            }
             IsValid = true;
         }
 

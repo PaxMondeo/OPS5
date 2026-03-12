@@ -11,10 +11,8 @@ namespace OPS5.Engine.Contracts
         IWMClass Add(string className);
         IWMClass Add(string className, List<string> attributes);
         IWMClass GetClass(string className);
-        IWMClass? GetClassIfExists(string className);
         void Delete(string className);
         void PrintClasses();
-        List<IWMClass> GetEnabledClasses();
-        List<string> ListClassNames();
+        List<IWMClass> GetClasses();
     }
 }

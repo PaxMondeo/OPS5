@@ -68,44 +68,39 @@ namespace OPS5.Engine
         public event EventHandler<bool> RunComplete = default!;
 
 
-        public async Task<bool> RunEngine(bool isDaemon)
+        public async Task<bool> RunEngine()
         {
             bool exit = false;
 
-            if (isDaemon)
-                await Task.Delay(1000);
+            if (_settings.AutoRun)
+            {
+                _settings.AutoRun = false;
+                await Run();
+            }
             else
             {
-                if (_settings.AutoRun)
+                ConsoleResult result = await _console.RunConsole();
+                switch (result)
                 {
-                    _settings.AutoRun = false;
-                    await Run();
-                }
-                else
-                {
-                    ConsoleResult result = await _console.RunConsole();
-                    switch (result)
-                    {
-                        case ConsoleResult.Exit:
-                            exit = true;
-                            break;
+                    case ConsoleResult.Exit:
+                        exit = true;
+                        break;
 
-                        case ConsoleResult.Reset:
-                            Reset();
-                            break;
+                    case ConsoleResult.Reset:
+                        Reset();
+                        break;
 
-                        case ConsoleResult.Run:
-                            await Run();
-                            break;
+                    case ConsoleResult.Run:
+                        await Run();
+                        break;
 
-                        case ConsoleResult.RunSteps:
-                            await Run(_settings.Steps);
-                            break;
+                    case ConsoleResult.RunSteps:
+                        await Run(_settings.Steps);
+                        break;
 
-                        case ConsoleResult.Errors:
-                            Console.WriteLine("\n\nPlease correct all errors before attempting to run\n\n");
-                            break;
-                    }
+                    case ConsoleResult.Errors:
+                        Console.WriteLine("\n\nPlease correct all errors before attempting to run\n\n");
+                        break;
                 }
             }
             return exit;
@@ -127,15 +122,11 @@ namespace OPS5.Engine
             _fileHandleManager.CloseAll();
             _logger.ErrorCount = 0;
             string folder = "";
-            //Maintain file path in case loading from REST
             if (_sourceFiles.ProjectFile != null && _sourceFiles.ProjectFile.FilePath != null)
                 folder = _sourceFiles.ProjectFile.FilePath;
-            _sourceFiles.ProjectFile = new SourceFile("", folder, "", "", false, false);
-            _sourceFiles.ClassFiles = new Dictionary<string, SourceFile>(StringComparer.OrdinalIgnoreCase);
+            _sourceFiles.ProjectFile = new SourceFile("", folder);
             _sourceFiles.RuleFiles = new Dictionary<string, SourceFile>(StringComparer.OrdinalIgnoreCase);
-            _sourceFiles.BindingFile = new SourceFile("", "", "", "", false, false);
-            _sourceFiles.DataFile = new SourceFile("", "", "", "", false, false);
-            _sourceFiles.OPS5File = new SourceFile("", "", "", "", false, false);
+            _sourceFiles.OPS5File = new SourceFile("", "");
             _logger.WriteInfo("Completed reset of OPS5 engine", 0);
         }
 
@@ -188,8 +179,6 @@ namespace OPS5.Engine
                 int stepCount = 0;
                 bool SomethingToDo = true;
 
-                _workingMemory.InjectObjects();
-
                 _halt = false;
                 _haltingRule = string.Empty;
                 _actionExecutor.ResetHalt();
@@ -204,9 +193,6 @@ namespace OPS5.Engine
 
                     if (SomethingToDo)
                     {
-                        //Now see if there are any incoming data objects to be injected into working memory
-                        _workingMemory.InjectObjects();
-
                         stepCount++;
                     }
                     else
@@ -261,7 +247,7 @@ namespace OPS5.Engine
 
         private void UnfireTokens()
         {
-            foreach (IRule p in _rules.GetEnabledRulesWithTokens())
+            foreach (IRule p in _rules.GetRulesWithTokens())
             {
                 foreach (IToken t in p.PNodeTokens())
                     t.Fired = false;
@@ -358,7 +344,7 @@ namespace OPS5.Engine
         private List<IConflictItem> BuildConflictSet()
         {
             List<IConflictItem> conflictSet = new List<IConflictItem>();
-            foreach (Rule rule in _rules.GetEnabledRulesWithTokens())
+            foreach (Rule rule in _rules.GetRulesWithTokens())
             {
                 foreach (IToken token in rule.PNodeTokens().Where(t => !t.Fired))
                 {
@@ -481,82 +467,6 @@ namespace OPS5.Engine
         }
 
         #endregion
-
-
-        /// <summary>
-        /// Helper method to split a Rule RHS line into its components
-        /// </summary>
-        /// <param name="line"></param>
-        /// <param name="remainder"></param>
-        /// <returns></returns>
-        public List<object> SplitRHSLine(string line, out string remainder)
-        {
-            List<object> atoms = new List<object>();
-            if (line != "")
-            {
-                int x = 0;
-                bool doing = true;
-                string thisAtom = "";
-
-                while (doing)
-                {
-                    switch (line[x])
-                    {
-                        case '(':
-                            //Opening bracket, so something new
-                            atoms.Add(SplitRHSLine(line.Substring(x + 1), out line));
-                            x = -1; //Line returned above as remainder after sub
-                            if (line == "")
-                            {
-                                doing = false;
-                            }
-                            break;
-                        case ')':
-                            //Closing bracket, so return what we have so far
-                            if (thisAtom != "")
-                            {
-                                atoms.Add(thisAtom);
-                            }
-                            line = line.Substring(x + 1);
-                            doing = false;
-                            break;
-                        case '|':
-                            if (thisAtom == "")
-                            {
-                                thisAtom = "|";
-                            }
-                            else
-                            {
-                                thisAtom += "|";
-                                atoms.Add(thisAtom);
-                                thisAtom = "";
-                            }
-                            break;
-                        case ' ':
-                        case '\t':
-                            if (thisAtom.StartsWith("|") && !(thisAtom.EndsWith("|") && thisAtom.Length > 1))
-                            {
-                                thisAtom += " ";
-                            }
-                            else
-                            {
-                                if (thisAtom != "")
-                                {
-                                    atoms.Add(thisAtom);
-                                    thisAtom = "";
-                                }
-                            }
-                            break;
-                        default:
-                            thisAtom += line[x];
-                            break;
-                    }
-                    x++;
-                }
-            }
-            remainder = line;
-            return atoms;
-        }
 
     }
 }

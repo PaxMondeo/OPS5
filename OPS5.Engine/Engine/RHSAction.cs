@@ -100,9 +100,7 @@ namespace OPS5.Engine
                                     switch (b.ToUpper())
                                     {
                                         case "CALC":
-                                        case "VECTOR":
                                         case "SUBSTR":
-                                        case "FORMATTED":
                                             ok = true;
                                             break;
                                     }

@@ -17,7 +17,6 @@ namespace OPS5.Engine.Contracts
         void AddObject(int objectID);
         void Copy(IToken toToken);
         void UpdateObjects();
-        bool Compare(IToken newToken);
         string GetObjectKey();
         void NewVariable(string var, string val);
         void NewTempVariable(string var, string val);
@@ -31,6 +30,5 @@ namespace OPS5.Engine.Contracts
         void CommitVariables();
         void RollBackVariables();
         string GetRecency();
-        void Remove();
     }
 }

@@ -14,8 +14,6 @@ namespace OPS5.Engine
         /// </summary>
         private Dictionary<string, IWMClass> _WMClasses { get; set; } = new Dictionary<string, IWMClass>();
 
-        private int _classesCount = 0;
-
         public WMClasses(IWMClassFactory WMClassFactory, IOPS5Logger OPS5Logger)
         {
             _WMClassFactory = WMClassFactory;
@@ -44,7 +42,6 @@ namespace OPS5.Engine
             {
                 IWMClass newClass = _WMClassFactory.NewClass(className);
                 _WMClasses.Add(className, newClass);
-                _classesCount++;
                 return newClass;
             }
         }
@@ -68,13 +65,6 @@ namespace OPS5.Engine
         {
             return _WMClasses[className];
         }
-        public IWMClass? GetClassIfExists(string className)
-        {
-            if (_WMClasses.ContainsKey(className))
-                return _WMClasses[className];
-            else
-                return null;
-        }
         internal List<IWMClass> List()
         {
             return _WMClasses.Values.ToList();
@@ -97,10 +87,7 @@ namespace OPS5.Engine
         {
             foreach (WMClass iclass in _WMClasses.Values)
             {
-                string message = $"Class {iclass.ClassName}\t";
-                if (!iclass.Enabled)
-                    message += "DISABLED";
-                message += "\n";
+                string message = $"Class {iclass.ClassName}\t\n";
                 foreach (string attribute in iclass.GetAttributes())
                 {
                     message += $"{attribute}\t";
@@ -110,15 +97,11 @@ namespace OPS5.Engine
             }
         }
 
-        public List<IWMClass> GetEnabledClasses()
+        public List<IWMClass> GetClasses()
         {
-            return _WMClasses.Values.Where(_ => _.Enabled == true).ToList();
+            return _WMClasses.Values.ToList();
         }
 
-        public List<string> ListClassNames()
-        {
-            return _WMClasses.Keys.ToList();
-        }
     }
 
 }

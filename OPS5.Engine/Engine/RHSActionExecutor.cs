@@ -6,7 +6,6 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace OPS5.Engine
@@ -79,13 +78,7 @@ namespace OPS5.Engine
             {
                 if (actions[x] is string actionX)
                 {
-                    if (actionX.ToUpper() == "FORMATTED" && actions.Count > x && actions[x + 1] is string actionString)
-                    {
-                        actionItems.Add(FormatString(actionString, thisToken.Variables));
-                        x++;
-                    }
-                    else
-                        actionItems.Add(actionX);
+                    actionItems.Add(actionX);
                 }
                 else
                     actionItems.Add(actions[x]);
@@ -166,11 +159,6 @@ namespace OPS5.Engine
                     {
                         //action is a sub-action
                         await DoActions((List<object>)action, thisToken, prod);
-                    }
-                    else if (action is List<string> && doing)
-                    {
-                        //action is a sub-action
-                        DoActionsString((List<string>)action, thisToken);
                     }
                     else
                     {
@@ -590,28 +578,7 @@ namespace OPS5.Engine
                 {
                     if (actions[y] is string action)
                     {
-                        string element;
-                        if (actions.Count > y + 2 && actions[y + 1] is string acty1 && acty1.Trim(trimChars).ToUpper() == "CONCAT")
-                        {
-                            //this is a concatenation, so find out how far it goes
-                            List<string> toConcat = new List<string>
-                        {
-                            action
-                        };
-                            for (int z = y + 1; z < actions.Count; z += 2)
-                            {
-                                if (actions.Count > z + 1 && actions[z] is string && actions[z + 1] is string nextAction)
-                                {
-                                    toConcat.Add(nextAction);
-                                    y += 2;
-                                }
-                                else
-                                    break;
-                            }
-                            element = Concatenate(toConcat, thisToken);
-                        }
-                        else
-                            element = action;
+                        string element = action;
 
                         if (element.StartsWith("<"))
                         {
@@ -668,9 +635,6 @@ namespace OPS5.Engine
                                 default:
                                     //Value is a literal
                                     element = CleanLiteral(element);
-                                    if (element.StartsWith("{}"))
-                                        element = FormatString(element, thisToken.Variables);
-
                                     elements.Add(element);
                                     break;
                             }
@@ -717,28 +681,9 @@ namespace OPS5.Engine
 
         private string CleanLiteral(string element)
         {
-            if (_config.Ops5 && element.StartsWith("|") && element.EndsWith("|"))
+            if (element.StartsWith("|") && element.EndsWith("|"))
                 element = element.Replace("|", "");
-            if (!_config.Ops5 && element.StartsWith("\"") && element.EndsWith("\""))
-                element = element.Replace("\"", "");
             return element;
-        }
-
-        private string Concatenate(List<string> atoms, IToken thisToken)
-        {
-            string result = "";
-
-            foreach (string atom in atoms)
-            {
-                string thisAtom = atom;
-                if (thisAtom.StartsWith("<"))
-                    thisAtom = thisToken.TryGetVariableValue(thisAtom);
-                thisAtom = CleanLiteral(thisAtom);
-                if (thisAtom.StartsWith("{}"))
-                    thisAtom = FormatString(thisAtom, thisToken.Variables);
-                result += thisAtom;
-            }
-            return result;
         }
 
         /// <summary>
@@ -793,13 +738,7 @@ namespace OPS5.Engine
             {
                 if (actions[y] is string str)
                 {
-                    if (str == "FORMATTED")
-                    {
-                        y++;
-                        if (actions[y] is string strY)
-                        charCount += WriteFormattedAtom(strY, thisToken);
-                    }
-                    else if (str == "TABTO")
+                    if (str == "TABTO")
                     {
                         y++;
                         if (y < actions.Count && actions[y] is string colStr)
@@ -826,63 +765,6 @@ namespace OPS5.Engine
             }
         }
 
-        private string FormatString(string inputToken, Dictionary<string, string> variables)
-        {
-            string outputToken = inputToken;
-            Match match = Regex.Match(outputToken, @"\{\<[A-Z0-9.]*\>\}");
-            while (match.Success)
-            {
-                string part = match.Value;
-                Match varMatch = Regex.Match(part, @"\<.+\>");
-                if (varMatch.Success)
-                {
-                    string varX = varMatch.Value.ToUpper();
-                    if (variables.ContainsKey(varX))
-                    {
-                        varX = variables[varX];
-
-                        Regex regx = new Regex(@"\{[^\}]+\}");
-                        Match fmtMatch = Regex.Match(part, @"\:.+\}");
-                        if (fmtMatch.Success)
-                        {
-                            string fmt = fmtMatch.Value;
-                            fmt = fmt.Substring(1, fmt.Length - 2);
-                            DateTime dt = DateTime.Now;
-
-                            if (double.TryParse(varX, out double tmp))
-                            {
-                                outputToken = regx.Replace(outputToken, tmp.ToString(fmt), 1);
-                            }
-                            else if (DateTime.TryParse(varX, out dt))
-                            {
-                                outputToken = regx.Replace(outputToken, dt.ToString(fmt), 1);
-                            }
-                        }
-                        else
-                        {
-                            outputToken = regx.Replace(outputToken, varX, 1);
-                        }
-                    }
-                    else
-                        _logger.WriteError($"Variable {varX} not found in token", "DoActions");
-                }
-                else
-                    _logger.WriteError($"Could not find variable to be replaced in text {outputToken}", "DoActions");
-                match = match.NextMatch();
-            }
-            return outputToken;
-        }
-
-        private void DoActionsString(List<string> actions, IToken thisToken)
-        {
-            switch (actions[0].ToUpper())
-            {
-                default:
-                    _logger.WriteError($"Unknown action {actions[0]} in Rule", "DoActionsString");
-                    break;
-            }
-        }
-
         private int WriteAtom(string atom, IToken thisToken)
         {
             int charCount = 0;
@@ -892,24 +774,12 @@ namespace OPS5.Engine
             else
                 var = atom;
 
-            if (_config.Ops5)
-                var = var.Replace("|", "");
-
-            if (var.StartsWith("{}"))
-                var = FormatString(var, thisToken.Variables);
+            var = var.Replace("|", "");
 
             _writeOut += var;
             charCount += var.Length;
             return charCount;
         }
-
-        private int WriteFormattedAtom(string atom, IToken thisToken)
-        {
-            string line = FormatString(atom, thisToken.Variables);
-            _writeOut += line;
-            return line.Length; ;
-        }
-
 
         private int WriteAction(List<object> actions, IToken thisToken, int preCount)
         {

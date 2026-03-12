@@ -17,8 +17,6 @@ namespace OPS5.Engine.Contracts
         IBetaNode PNode { get; set; }
         int Specificity { get; set; }
         List<IRHSAction> RHS { get; }
-        string Comment { get; set; }
-        bool Enabled { get; set; }
         int ObjectCount { get; set; }
         bool PNodeHasTokens();
         List<IToken> PNodeTokens();

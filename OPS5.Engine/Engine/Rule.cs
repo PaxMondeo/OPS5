@@ -72,16 +72,6 @@ namespace OPS5.Engine
         /// </summary>
         public List<IRHSAction> RHS { get; private set; } = new List<IRHSAction>();
 
-        /// <summary>
-        /// Author's comment describing the Rule
-        /// </summary>
-        public string Comment { get; set; } = "";
-
-        /// <summary>
-        /// Indicates that the Rule is Enabled for use
-        /// </summary>
-        public bool Enabled { get; set; } = true;
-
         public int ObjectCount { get; set; } = 0; //used to track the position of each Object in the Token, as it is added
 
         public int FireCount { get; set; }

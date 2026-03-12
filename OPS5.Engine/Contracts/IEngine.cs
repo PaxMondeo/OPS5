@@ -6,7 +6,7 @@ namespace OPS5.Engine.Contracts
 
     public interface IEngine
     {
-        Task<bool> RunEngine(bool isDaemon);
+        Task<bool> RunEngine();
         Task Run();
         Task Run(int maxSteps);
         void Halt();

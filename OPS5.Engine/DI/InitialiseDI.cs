@@ -1,7 +1,6 @@
 using OPS5.Engine.Calculators;
 using OPS5.Engine.Commands;
 using OPS5.Engine.Contracts;
-using OPS5.Engine.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace OPS5.Engine.DI
