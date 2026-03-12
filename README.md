@@ -4,9 +4,19 @@ A forward-chaining production rules engine implementing the OPS5 language with t
 
 OPS5 was the language behind R1/XCON, the expert system that Digital Equipment Corporation used to configure VAX computer systems -- one of the great success stories of applied artificial intelligence. This engine is a modern, clean-room implementation with dependency injection, async support, and a full test suite.
 
+There were two less well known OPS5 expert systems that I was personally involved with in the 1980s.
+
+One was an expert system that was used in Digital's manufacturing to generate test programs for testing analogue electronics circuits (switched mode power supplies for VAX computers), which took as input the CAD for the circuit to be tested and output a test program that could be run on an HP3060 tester to functionally test and diagnose issues with the circuit boards.
+
+The other was a scheduling system to manage the flow of petroleum (gasoline) products through a pipeline from Los Angeles over the Rockies that could predict when a batch of gas would arrive at the destination tank accurately enough to avoid mixing batches.
+
 ## Companion Book
 
 This engine is the companion source code for **OPS5 Revisited -- Second Edition**, which walks through building a complete OPS5 rules engine step by step, from the RETE algorithm through parsing to a working system.
+
+## Language Reference
+
+See the [OPS5 Language Reference](OPS5-Language-Reference.md) for a comprehensive guide to OPS5 syntax, conditions, actions, and conflict resolution strategies.
 
 ## Features
 
@@ -47,16 +57,29 @@ dotnet run --project OPS5.Host
 
 ## Examples
 
-The [`examples/`](examples/) directory contains 13 sample OPS5 programs covering introductory programs, classic AI problems, and language feature demonstrations:
+The [`examples/`](examples/) directory contains 19 sample OPS5 programs covering introductory programs, classic AI problems, and language feature demonstrations:
 
 | Example | Description |
 |---------|-------------|
 | [HelloWorld](examples/HelloWorld/) | Minimal program -- variable binding and output |
+| [Calculator](examples/Calculator/) | Arithmetic with bind and compute |
 | [BlocksWorld](examples/BlocksWorld/) | Classic AI blocks world |
 | [TowerOfHanoi](examples/TowerOfHanoi/) | Recursive puzzle solving with negated conditions |
-| [Calculator](examples/Calculator/) | Arithmetic with bind and compute |
 | [Manners](examples/Manners/) | Dinner party seating -- complex constraint satisfaction |
+| [AliasTest](examples/AliasTest/) | Duplicate class conditions (auto-aliasing) |
+| [CBindTest](examples/CBindTest/) | Time-tag capture with `cbind` |
+| [CallTest](examples/CallTest/) | External program invocation with `call` |
+| [ComparisonTest](examples/ComparisonTest/) | All comparison operators (`=`, `<>`, `<`, `>`, `<=`, `>=`) |
+| [ComputeTest](examples/ComputeTest/) | Nested arithmetic with `compute` |
+| [ConjunctionTest](examples/ConjunctionTest/) | AND predicates on a single attribute |
+| [DefaultTest](examples/DefaultTest/) | Default attribute values |
+| [DisjunctionTest](examples/DisjunctionTest/) | OR matching with disjunction syntax |
+| [FileIOTest](examples/FileIOTest/) | File I/O with `openfile`, `closefile`, `accept` |
+| [GenatomTest](examples/GenatomTest/) | Unique symbol generation with `genatom` |
 | [StateMachine](examples/StateMachine/) | State transition pattern |
+| [StrategyTest](examples/StrategyTest/) | LEX and MEA conflict resolution strategies |
+| [SubstrTest](examples/SubstrTest/) | Substring operations with `substr` |
+| [TabToTest](examples/TabToTest/) | Column-aligned output with `tabto` |
 
 See [`examples/README.md`](examples/README.md) for the full list and a language quick reference.
 
