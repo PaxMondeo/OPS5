@@ -337,6 +337,23 @@ namespace OPS5.Engine.Parsers.OPS5
                 // // is OPS5 integer division operator
                 AddToken(TokenType.Slash, "//", 2);
             }
+            else if (IsIdentifierChar(Peek(1)))
+            {
+                // /s, /path/to/file, /opt — slash-prefixed identifier (e.g., call arguments)
+                int startLine = _line, startCol = _col, startPos = _pos;
+                _pos++;
+                _col++;
+
+                while (_pos < _source.Length && (IsIdentifierChar(_source[_pos]) || _source[_pos] == '/'))
+                {
+                    _pos++;
+                    _col++;
+                }
+
+                string value = _source[startPos.._pos];
+                int length = _pos - startPos;
+                _tokens.Add(new LexToken(TokenType.Identifier, value, startLine, startCol, startPos, length));
+            }
             else
             {
                 AddToken(TokenType.Slash, "/", 1);
