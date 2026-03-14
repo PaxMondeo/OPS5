@@ -13,5 +13,5 @@
 (p call-hostname
     (control ^step start)
     -->
-    (call hostname)
+    (call cmd /c hostname)
     (modify 1 ^step done))

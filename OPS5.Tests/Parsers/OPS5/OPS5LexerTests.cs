@@ -205,6 +205,42 @@ namespace OPS5.Engine.Tests.Parsers.OPS5
             tokens[5].Type.Should().Be(TokenType.RightBrace);
         }
 
+        // === Slash-prefixed identifiers ===
+
+        [Fact]
+        public void Tokenize_SlashFollowedByLetter_IsIdentifier()
+        {
+            var tokens = Lex("/s");
+            tokens[0].Type.Should().Be(TokenType.Identifier);
+            tokens[0].Value.Should().Be("/s");
+        }
+
+        [Fact]
+        public void Tokenize_SlashPath_IsSingleIdentifier()
+        {
+            var tokens = Lex("/path/to/file");
+            tokens[0].Type.Should().Be(TokenType.Identifier);
+            tokens[0].Value.Should().Be("/path/to/file");
+        }
+
+        [Fact]
+        public void Tokenize_SlashSpace_IsSlashToken()
+        {
+            var tokens = Lex("/ s");
+            tokens[0].Type.Should().Be(TokenType.Slash);
+            tokens[0].Value.Should().Be("/");
+            tokens[1].Type.Should().Be(TokenType.Identifier);
+            tokens[1].Value.Should().Be("s");
+        }
+
+        [Fact]
+        public void Tokenize_DoubleSlash_IsSlashToken()
+        {
+            var tokens = Lex("//");
+            tokens[0].Type.Should().Be(TokenType.Slash);
+            tokens[0].Value.Should().Be("//");
+        }
+
         // === Complete OPS5 Fragments ===
 
         [Fact]
